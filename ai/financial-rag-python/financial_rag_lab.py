@@ -19,6 +19,9 @@ from typing import Iterable
 
 
 WORD_RE = re.compile(r"[A-Za-z가-힣0-9%.-]+")
+# 토큰이 없는 경우(빈 질의 등) 0으로 나누지 않도록 최소 분모를 1로 고정한다.
+MIN_TERM_COUNT = 1
+MAX_SNIPPET_LENGTH = 180
 
 
 @dataclass
@@ -52,6 +55,7 @@ def chunk_document(source: str, text: str, max_chars: int) -> list[Chunk]:
     chunks: list[Chunk] = []
 
     buffer = ""
+    # 출력 시 사람이 읽기 쉽게 source#1 형태를 쓰기 위해 1부터 시작한다.
     chunk_idx = 1
     for para in paragraphs:
         candidate = para if not buffer else f"{buffer}\n\n{para}"
@@ -102,7 +106,7 @@ def vectorize(tokens: list[str], idf: dict[str, float]) -> dict[str, float]:
     for t in tokens:
         tf[t] = tf.get(t, 0) + 1
 
-    norm = max(sum(tf.values()), 1)
+    norm = max(sum(tf.values()), MIN_TERM_COUNT)
     return {token: (count / norm) * idf.get(token, 0.0) for token, count in tf.items()}
 
 
@@ -144,8 +148,8 @@ def generate_answer(query: str, evidences: list[tuple[Chunk, float]]) -> str:
     lines = [f"질문: {query}", "", "[근거 기반 요약]"]
     for i, (chunk, score) in enumerate(evidences, start=1):
         snippet = chunk.text.replace("\n", " ").strip()
-        if len(snippet) > 180:
-            snippet = snippet[:180] + "..."
+        if len(snippet) > MAX_SNIPPET_LENGTH:
+            snippet = snippet[:MAX_SNIPPET_LENGTH] + "..."
         lines.append(
             f"{i}. ({chunk.source}#{chunk.index}, score={score:.3f}) {snippet}"
         )
