@@ -1,25 +1,83 @@
 # AWS 초급자 EC2/ECS/LB 실습 저장소
 
-AWS 회원가입과 보안 기본 설정부터 EC2/ECS/ALB 실습까지 한 번에 따라갈 수 있도록 Lab 스타일로 정리한 저장소입니다.
+AWS 회원가입·보안 기본 설정부터 EC2 네트워크, ALB, Auto Scaling, ECS Fargate 배포까지  
+Lab 스타일로 단계별로 따라갈 수 있도록 정리한 저장소입니다.
+
+---
+
+## 저장소 구조
+
+```
+aws-ec2-alb-lab/
+├── EC2/                        # VPC·Subnet·IGW·ALB·ASG 실습 (CLI + 콘솔)
+│   ├── 000_aws_onboarding_lab.md   # 회원가입 / IAM / MFA / AWS CLI
+│   ├── 001.md                      # VPC·Subnet·IGW·라우팅 (CLI)
+│   ├── 002.md                      # ALB·Target Group·Listener (CLI)
+│   ├── 003.md                      # ASG 운용 점검 + EC2 Instance Connect 트러블슈팅
+│   ├── 004.md                      # 콘솔 기반 AMI·Template·ASG 체크리스트
+│   ├── 005.md                      # 애플리케이션 런타임 준비 (JDK·SFTP)
+│   ├── 008.md                      # 운영 점검용 CLI 조회 명령 모음
+│   └── template.json               # Launch Template 예시 JSON
+│
+├── ECS/                        # ECS Fargate 배포 실습
+│   ├── aws_ecs_fargate_summary.md  # ECS·Fargate 핵심 개념 정리
+│   ├── 001_fargate_hands_on.md     # ECR 빌드·푸시 → Fargate 서비스 배포
+│   ├── 002_ecs_alb_lab.md          # ECS Service + ALB 경로 기반 라우팅
+│   └── 003_study_checklist.md      # 스터디 점검 질문 모음
+│
+├── LB/                         # Load Balancer 학습
+│   └── 001_alb_settings_lab.md     # ALB vs NLB 비교·설정·점검·트러블슈팅
+│
+├── BE-fastapi/                 # Docker 기반 FastAPI 샘플 API
+│   ├── app/
+│   │   └── main.py                 # FastAPI 앱 본체
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── ag-grid-app/                # Nginx에 배포 가능한 AG Grid 정적 앱
+│   ├── index.html
+│   ├── styles.css
+│   └── app.js
+│
+├── deploy/                     # ECS 배포 자동화 샘플 3종
+│   ├── shell/
+│   │   ├── deploy_ecs_cli.sh       # Shell Script 방식
+│   │   └── deploy.env.example      # 환경변수 템플릿
+│   └── ansible/
+│       ├── deploy_ecs_cli.yml      # Ansible Playbook 방식
+│       ├── inventory.ini
+│       └── group_vars/all.yml
+│
+├── ai/
+│   └── bedrock-python-llm/
+│       └── bedrock_claude_example.py   # Amazon Bedrock Claude 호출 샘플
+│
+├── assets/                     # 다이어그램 이미지
+│   ├── aws-study-flow.svg
+│   └── aws-cloud-architecture.svg
+│
+└── tools/
+    └── redact_ec2_images.py    # 스크린샷 민감정보 마스킹 스크립트
+```
+
+---
 
 ## 학습 범위
-- `온보딩 Lab`: AWS 회원가입, IAM 설정, MFA(2단계 인증), AWS CLI 설치/검증
-- `EC2`: VPC, Subnet, IGW, Route Table, AMI, Launch Template, ASG 실습
-- `ECS`: ECS/Fargate 핵심 개념 + 실습형 배포 가이드
-- `LB`: ALB/NLB 개념과 설정 포인트, 트러블슈팅
-- `ai`: Amazon Bedrock 기반 Python LLM 호출 예시
-- `BE-fastapi`: Docker 기반 FastAPI Hello World API 샘플
-- `ag-grid-app`: Nginx에 바로 올릴 수 있는 바닐라 HTML/JS 기반 AG Grid 정적 앱
- 
-## 권장 학습 순서
-1. `EC2/000_aws_onboarding_lab.md` (회원가입 + IAM + MFA + AWS CLI)
-2. `EC2/001.md` ~ `EC2/003.md` (네트워크 + ALB + ASG)
-3. `LB/001_alb_settings_lab.md` (리스너/타겟 그룹/헬스체크)
-4. `ECS/001_fargate_hands_on.md` (Fargate 실습)
-5. `ECS/002_ecs_alb_lab.md` (ECS + ALB 라우팅)
-6. `ECS/003_study_checklist.md` (스터디 질문/점검)
 
-## Mermaid 순서도
+| 폴더 | 내용 |
+|---|---|
+| `EC2` | 회원가입·IAM·MFA·AWS CLI 온보딩, VPC·Subnet·IGW·라우팅, ALB·Target Group, ASG, AMI·Launch Template |
+| `ECS` | ECS/Fargate 핵심 개념, ECR 이미지 빌드·배포, ALB 연동, CloudWatch 로그·헬스체크 |
+| `LB` | ALB vs NLB 비교, Listener·Rule·Target Group, 헬스체크, 트러블슈팅 |
+| `BE-fastapi` | FastAPI Hello World API, Docker 빌드·실행 |
+| `ag-grid-app` | 바닐라 HTML/JS 기반 AG Grid 정적 앱, Nginx 배포 |
+| `deploy` | Shell / Ansible / GitHub Actions 3가지 방식의 ECS 배포 자동화 |
+| `ai` | Amazon Bedrock + boto3로 Claude LLM 호출 |
+
+---
+
+## 권장 학습 순서
+
 ```mermaid
 flowchart TD
     A[요구사항 정의] --> B[네트워크 설계 VPC/Subnet/Route]
@@ -33,37 +91,264 @@ flowchart TD
 ### 순서도 이미지
 ![Study Flow](assets/aws-study-flow.svg)
 
-## AWS 클라우드 아키텍처 다이어그램
+### AWS 클라우드 아키텍처 다이어그램
 ![AWS Architecture](assets/aws-cloud-architecture.svg)
 
-## 빠른 실행: FastAPI Docker 샘플
+### 단계별 학습 경로
+
+| 단계 | 파일 | 핵심 내용 |
+|---|---|---|
+| 1 | [EC2/000_aws_onboarding_lab.md](EC2/000_aws_onboarding_lab.md) | AWS 계정 생성, 루트·IAM MFA, AWS CLI 설치·검증 |
+| 2 | [EC2/001.md](EC2/001.md) | VPC·Subnet 2개·IGW·Route Table·퍼블릭 IP 자동할당 |
+| 3 | [EC2/002.md](EC2/002.md) | ALB 보안그룹·Target Group·Listener 구성 |
+| 4 | [EC2/003.md](EC2/003.md) | ASG 상태 점검, EC2 Instance Connect 트러블슈팅, 부하 테스트 |
+| 5 | [EC2/004.md](EC2/004.md) | 콘솔에서 AMI·Launch Template·ASG·LB 연결 재점검 |
+| 6 | [EC2/005.md](EC2/005.md) | JDK 설치·SFTP 파일 전송·앱 실행 |
+| 7 | [LB/001_alb_settings_lab.md](LB/001_alb_settings_lab.md) | ALB vs NLB, Listener·Rule 구조, 헬스체크·503 진단 |
+| 8 | [ECS/aws_ecs_fargate_summary.md](ECS/aws_ecs_fargate_summary.md) | ECS·Fargate 개념 정리 |
+| 9 | [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md) | ECR 빌드·푸시 → Fargate 서비스 배포·삭제 |
+| 10 | [ECS/002_ecs_alb_lab.md](ECS/002_ecs_alb_lab.md) | ECS Service + ALB 경로 기반 라우팅·트러블슈팅 |
+| 11 | [ECS/003_study_checklist.md](ECS/003_study_checklist.md) | 스터디 점검 질문 셀프 체크 |
+
+---
+
+## 실습 전 준비 사항
+
+- AWS 계정 생성 및 결제·본인 인증 완료
+- 루트 계정 + IAM 사용자 MFA 활성화
+- AWS CLI v2 설치 및 `aws configure` 완료
+- 기본 리전 확정 (예: `ap-northeast-2`)
+- 비용 발생 리소스(ALB, EC2, ECS, EIP) 생성·삭제 계획 수립
+
+---
+
+## 모듈별 상세 안내
+
+### EC2 — 네트워크·인프라 실습
+
+**EC2/000 — AWS 온보딩 Lab**  
+AWS 계정 생성부터 IAM 관리자 사용자, MFA, AWS CLI 초기 설정, 연결 검증까지 초급자용 완전 체크리스트를 제공합니다.
+
+**EC2/001 — VPC·Subnet·IGW·Route Table (CLI)**
 ```bash
+# VPC 생성
+aws ec2 create-vpc --cidr-block 10.0.0.0/16
+
+# Public Subnet 2개 (AZ 분산)
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.1.0/24 --availability-zone ap-northeast-2a
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.2.0/24 --availability-zone ap-northeast-2c
+
+# IGW 연결 및 0.0.0.0/0 라우트 추가
+aws ec2 create-internet-gateway ...
+aws ec2 attach-internet-gateway ...
+aws ec2 create-route --route-table-id rtb-xxxxxxxx --destination-cidr-block 0.0.0.0/0 --gateway-id igw-xxxxxxxx
+```
+
+**EC2/002 — ALB·Target Group·Listener (CLI)**
+```bash
+# Target Group 생성 (instance 타입)
+aws elbv2 create-target-group --name nginx-tg --protocol HTTP --port 80 --vpc-id vpc-xxxxxxxx --target-type instance --health-check-path /index.html
+
+# ALB 생성 (internet-facing, Public Subnet 2개 이상 필수)
+aws elbv2 create-load-balancer --name nginx-alb --subnets subnet-xxxxxxxx subnet-yyyyyyyy --security-groups sg-xxxxxxxx --scheme internet-facing --type application
+
+# Listener 생성
+aws elbv2 create-listener --load-balancer-arn <ALB_ARN> --protocol HTTP --port 80 --default-actions Type=forward,TargetGroupArn=<TG_ARN>
+```
+
+**EC2/003 — ASG 운용 점검 + Instance Connect 트러블슈팅**  
+SSH 접속 불가 시 확인 순서, `EC2 Instance Connect` 전용 IAM 권한, 보안그룹·라우팅·AMI 지원 여부 점검, ASG/Target Health CLI 조회 방법을 정리합니다.
+
+**EC2/004 — 콘솔 기반 체크리스트**  
+CLI 실습 이후 콘솔에서 AMI 권한, Launch Template 버전, ASG 용량·헬스체크 유형, LB 가용영역·Listener 연결을 재검증하는 체크리스트입니다.
+
+**EC2/005 — 애플리케이션 런타임 준비**  
+JDK 설치, SFTP 기반 파일 전송, 앱 실행, 보안 운영 원칙을 다룹니다.
+
+**EC2/008 — 운영 점검 명령 모음**  
+ALB가 사용하는 Subnet, Subnet↔AZ 매핑, 라우팅 경로, 보안그룹 인바운드/아웃바운드, Target Group 상태를 빠르게 조회하는 CLI 템플릿 모음입니다.
+
+---
+
+### ECS — Fargate 배포 실습
+
+**ECS/aws_ecs_fargate_summary.md** — ECS 클러스터·서비스·Task Definition·ECR 개념 정리
+
+**ECS/001 — Fargate 배포 실습 (FastAPI 샘플)**
+```bash
+# ECR 리포지토리 생성 → 이미지 빌드·푸시 → Task Definition 등록 → ECS Service 생성
+AWS_REGION="ap-northeast-2"
+CLUSTER_NAME="study-fargate-cluster"
+# (전체 명령은 ECS/001_fargate_hands_on.md 참조)
+```
+
+**ECS/002 — ECS Service + ALB 경로 기반 라우팅**  
+Target Group 타입을 `ip`로 생성하고, ECS Service에 `--load-balancers` 옵션으로 ALB를 연결하는 방법과 트러블슈팅(`unhealthy`, 503, Target registration failed)을 다룹니다.
+
+**ECS/003 — 스터디 점검 체크리스트**  
+ECS·Fargate·ECR·ALB 개념 확인용 셀프 질문 목록입니다.
+
+---
+
+### LB — Load Balancer 학습
+
+**ALB vs NLB 비교**
+
+| 항목 | ALB | NLB |
+|---|---|---|
+| 계층 | L7 (HTTP/HTTPS) | L4 (TCP/UDP/TLS) |
+| 라우팅 | Host/Path 기반 | 포트·프로토콜 기반 |
+| 주요 용도 | 웹·API | 고성능 TCP, 고정 IP |
+
+**주요 점검 명령**
+```bash
+aws elbv2 describe-load-balancers --names <ALB_NAME>
+aws elbv2 describe-listeners --load-balancer-arn <ALB_ARN>
+aws elbv2 describe-rules --listener-arn <LISTENER_ARN>
+aws elbv2 describe-target-health --target-group-arn <TG_ARN>
+```
+
+---
+
+### BE-fastapi — FastAPI Docker 샘플
+
+엔드포인트:
+- `GET /` → `{ "message": "hello world" }`
+- `GET /health` → `{ "status": "ok" }`
+
+```bash
+# Docker 빌드·실행
 cd BE-fastapi
 docker build -t be-fastapi-hello .
 docker run --rm -p 8000:8000 be-fastapi-hello
-```
 
-확인:
-```bash
+# 동작 확인
 curl http://127.0.0.1:8000/
 curl http://127.0.0.1:8000/health
 ```
 
-## 문서 인덱스
-- [EC2 학습 가이드](EC2/README.md)
-- [AWS 초급 온보딩 Lab](EC2/000_aws_onboarding_lab.md)
-- [ECS 학습 가이드](ECS/README.md)
-- [LB 학습 가이드](LB/README.md)
-- [FastAPI Docker 샘플](BE-fastapi/README.md)
-- [AG Grid 정적 앱](ag-grid-app/README.md)
-- [AWS CLI 배포 샘플 3종](deploy/README.md)
-- [AWS AI(Bedrock) Python LLM 예시](ai/bedrock-python-llm/README.md)
+로컬 직접 실행:
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+---
+
+### ag-grid-app — AG Grid 정적 앱
+
+바닐라 HTML/CSS/JS 기반 AG Grid 앱으로, Nginx에 바로 올릴 수 있습니다.
+
+```bash
+# 로컬 확인
+cd ag-grid-app
+python3 -m http.server 8080
+# → http://127.0.0.1:8080
+
+# Nginx 배포
+sudo mkdir -p /var/www/html/ag-grid-app
+sudo cp -r ag-grid-app/* /var/www/html/ag-grid-app/
+sudo systemctl reload nginx
+# → http://<EC2_PUBLIC_IP>/ag-grid-app/
+```
+
+---
+
+### deploy — ECS 배포 자동화 3종
+
+공통 흐름: ECR 리포지토리 확인·생성 → 이미지 빌드·푸시 → Task Definition 등록 → ECS Service 업데이트 → 안정화 대기
+
+**1) Shell Script 방식**
+```bash
+cp deploy/shell/deploy.env.example .env.deploy
+set -a && source .env.deploy && set +a
+./deploy/shell/deploy_ecs_cli.sh
+```
+
+**2) Ansible 방식**
+```bash
+# 사전 요구: ansible, aws cli, docker
+# 변수 파일: deploy/ansible/group_vars/all.yml
+ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.yml
+```
+
+**3) GitHub Actions 방식**  
+워크플로우: `.github/workflows/deploy-ecs-aws-cli.yml`
+
+필수 GitHub 설정:
+- **Secrets**: `AWS_ROLE_TO_ASSUME` (OIDC Assume할 Role ARN)
+- **Variables**: `AWS_REGION`, `ECS_CLUSTER`, `ECS_SERVICE`, `TASK_FAMILY`, `ECR_REPO`, `CONTAINER_NAME`
+- 선택: `CONTAINER_PORT`, `CPU`, `MEMORY`
+
+> 장기 Access Key 대신 **OIDC + IAM Role** 사용을 권장합니다.
+
+---
+
+### ai — Amazon Bedrock Python LLM 예시
+
+`ai/bedrock-python-llm/bedrock_claude_example.py`에서 boto3로 Claude 모델을 호출하는 최소 예시를 제공합니다.
+
+```bash
+# 자격 증명 설정 (아래 중 하나)
+aws configure                        # 로컬 개발
+# 또는 EC2/ECS에 IAM Role 연결 (권장)
+
+# 환경변수 (필요 시)
+export AWS_REGION=us-east-1
+export BEDROCK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0
+
+# 실행
+python ai/bedrock-python-llm/bedrock_claude_example.py
+```
+
+> Bedrock 모델 접근 권한(IAM + 모델 액세스)이 사전에 설정되어 있어야 합니다.
+
+---
 
 ## 빠른 트러블슈팅
-- EC2 콘솔에서 `EC2 Instance Connect` 접속이 `Access denied`로 실패하면, `EC2/003.md`의 접속 점검 항목부터 확인합니다.
-- 특히 `TCP 22` 인바운드 허용만으로는 부족할 수 있으며, 퍼블릭 IP, IGW 라우팅, IAM 권한, 지원 AMI 여부를 함께 확인해야 합니다.
+
+| 증상 | 확인 항목 |
+|---|---|
+| `EC2 Instance Connect: Access denied` | 퍼블릭 IP 유무, IGW 라우팅, SG 22 허용, `ec2-instance-connect:SendSSHPublicKey` 권한, AMI 지원 여부 |
+| ALB `503 Service Unavailable` | Target Group에 등록된 인스턴스 없음, 헬스체크 실패, 태스크 수 0 |
+| `InvalidConfigurationRequest` (ALB 생성) | ALB 보안그룹이 Subnet과 다른 VPC에 속해 있는 경우 → 동일 VPC SG로 재생성 |
+| ECS Task `unhealthy` | ALB SG → Task SG 8000 포트 허용 확인 |
+| ECS `Target registration failed` | Target Group 타입이 `ip`인지 확인 (Fargate는 `ip` 필수) |
+| Bedrock 호출 오류 | IAM 정책에 `bedrock:InvokeModel` 권한 및 모델 액세스 승인 여부 확인 |
+
+---
+
+## 문서 인덱스
+
+| 폴더/파일 | 링크 |
+|---|---|
+| EC2 학습 가이드 | [EC2/README.md](EC2/README.md) |
+| AWS 초급 온보딩 Lab | [EC2/000_aws_onboarding_lab.md](EC2/000_aws_onboarding_lab.md) |
+| VPC·Subnet·IGW·라우팅 | [EC2/001.md](EC2/001.md) |
+| ALB·Target Group·Listener | [EC2/002.md](EC2/002.md) |
+| ASG 운용 점검 | [EC2/003.md](EC2/003.md) |
+| 콘솔 기반 AMI·ASG 체크리스트 | [EC2/004.md](EC2/004.md) |
+| 애플리케이션 런타임 준비 | [EC2/005.md](EC2/005.md) |
+| 운영 점검 CLI 모음 | [EC2/008.md](EC2/008.md) |
+| ECS 학습 가이드 | [ECS/README.md](ECS/README.md) |
+| Fargate 핵심 개념 정리 | [ECS/aws_ecs_fargate_summary.md](ECS/aws_ecs_fargate_summary.md) |
+| Fargate 배포 실습 | [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md) |
+| ECS + ALB 라우팅 | [ECS/002_ecs_alb_lab.md](ECS/002_ecs_alb_lab.md) |
+| 스터디 점검 체크리스트 | [ECS/003_study_checklist.md](ECS/003_study_checklist.md) |
+| LB 학습 가이드 | [LB/README.md](LB/README.md) |
+| ALB 설정·점검 Lab | [LB/001_alb_settings_lab.md](LB/001_alb_settings_lab.md) |
+| FastAPI Docker 샘플 | [BE-fastapi/README.md](BE-fastapi/README.md) |
+| AG Grid 정적 앱 | [ag-grid-app/README.md](ag-grid-app/README.md) |
+| ECS 배포 자동화 3종 | [deploy/README.md](deploy/README.md) |
+| Bedrock Python LLM 예시 | [ai/bedrock-python-llm/README.md](ai/bedrock-python-llm/README.md) |
+
+---
 
 ## 보안 처리 안내
-- `EC2` 폴더의 스크린샷 이미지는 민감정보 노출 방지를 위해 마스킹 처리했습니다.
-- 문서 내 ID, 계정, IP, ARN 예시는 `xxxxxxxx` 형태로 표기했습니다.
-- 스크린샷 마스킹 스크립트: `tools/redact_ec2_images.py`
+
+- `EC2` 폴더의 스크린샷 이미지(`*.png`)는 민감정보 노출 방지를 위해 마스킹 처리했습니다.
+- 문서 내 계정 ID, IP, ARN, 리소스 ID 예시는 `xxxxxxxx` 형태로 표기했습니다.
+- 실습 종료 후 미사용 리소스(ALB, EC2, ECS 서비스, EIP)를 즉시 삭제해 불필요한 비용을 방지합니다.
+- Access Key는 공개 저장소에 커밋하지 않습니다. 가능하면 IAM Role + OIDC를 우선 사용합니다.
+- 스크린샷 마스킹 스크립트: [`tools/redact_ec2_images.py`](tools/redact_ec2_images.py)
