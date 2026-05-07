@@ -55,7 +55,8 @@ aws-ec2-alb-lab/
 │   ├── polly-python/               # 텍스트→음성(TTS) 변환
 │   ├── rekognition-python/         # 이미지 레이블·얼굴·텍스트 분석
 │   ├── textract-python/            # 문서 OCR·폼(KEY-VALUE) 추출
-│   └── transcribe-python/          # 음성→텍스트(ASR) 변환
+│   ├── transcribe-python/          # 음성→텍스트(ASR) 변환
+│   └── financial-rag-python/       # 금융공학 RAG 커리큘럼 + Python 실습
 │
 ├── assets/                     # 다이어그램 이미지
 │   ├── aws-study-flow.svg
@@ -77,7 +78,7 @@ aws-ec2-alb-lab/
 | `BE-fastapi` | FastAPI Hello World API, Docker 빌드·실행 |
 | `ag-grid-app` | 바닐라 HTML/JS 기반 AG Grid 정적 앱, Nginx 배포 |
 | `deploy` | Shell / Ansible / GitHub Actions 3가지 방식의 ECS 배포 자동화 |
-| `ai` | Bedrock, Comprehend, Lex, Polly, Rekognition, Textract, Transcribe 실습 예시 |
+| `ai` | Bedrock, Comprehend, Lex, Polly, Rekognition, Textract, Transcribe + 금융공학 RAG Python 실습 |
 
 ---
 
@@ -334,6 +335,7 @@ ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.y
 | `ai/rekognition-python` | Amazon Rekognition | 이미지 라벨·얼굴·텍스트 분석 | `python3 ai/rekognition-python/rekognition_example.py --file photo.jpg` |
 | `ai/textract-python` | Amazon Textract | 문서 OCR, 폼(KEY-VALUE) 분석 | `python3 ai/textract-python/textract_example.py --file sample.png --forms` |
 | `ai/transcribe-python` | Amazon Transcribe | 오디오 비동기 STT 변환 | `python3 ai/transcribe-python/transcribe_example.py --s3-uri s3://<bucket>/audio.mp3 --lang ko-KR` |
+| `ai/financial-rag-python` | Financial Engineering RAG | 금융공학 문서 기반 검색·근거 응답 파이프라인 | `python3 ai/financial-rag-python/financial_rag_lab.py --query "VaR를 줄이는 방법은?" --top-k 3` |
 
 공통 사전 준비:
 - AWS 자격 증명 설정 (`aws configure` 또는 EC2/ECS IAM Role)
@@ -355,6 +357,15 @@ python ai/bedrock-python-llm/bedrock_claude_example.py
 ```
 
 > Bedrock 모델 접근 권한(IAM + 모델 액세스)이 사전에 설정되어 있어야 합니다.
+
+추가로 `ai/financial-rag-python`은 AWS API 호출 없이 실행 가능한 **금융공학 RAG 커리큘럼 Lab**을 제공합니다.  
+실습 흐름: 문서 적재 → 청킹 → TF-IDF 검색 → 근거 포함 응답 생성.
+
+```bash
+python3 ai/financial-rag-python/financial_rag_lab.py \
+  --query "금리 상승기에 채권 비중을 줄이는 이유는?" \
+  --top-k 3
+```
 
 ---
 
@@ -419,6 +430,7 @@ aws ecr describe-repositories
 | Rekognition Python 예시 | [ai/rekognition-python/README.md](ai/rekognition-python/README.md) |
 | Textract Python 예시 | [ai/textract-python/README.md](ai/textract-python/README.md) |
 | Transcribe Python 예시 | [ai/transcribe-python/README.md](ai/transcribe-python/README.md) |
+| 금융공학 RAG Python Lab | [ai/financial-rag-python/README.md](ai/financial-rag-python/README.md) |
 
 ---
 
