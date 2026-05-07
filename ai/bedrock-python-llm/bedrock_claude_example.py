@@ -58,7 +58,7 @@ def ask_bedrock(prompt: str) -> str:
         raise RuntimeError(f"Bedrock model invocation failed ({code}): {message}") from exc
     except BotoCoreError as exc:
         raise RuntimeError(
-            f"AWS connection error ({type(exc).__name__}). Check network and region settings."
+            f"AWS connection error ({type(exc).__name__}): {exc}. Check network and region settings."
         ) from exc
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
         raise RuntimeError(
