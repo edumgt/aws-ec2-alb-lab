@@ -42,3 +42,9 @@
 - 태스크 로그 표준화(`/ecs/<service-name>`)
 - 헬스체크 경로(`/health`) 분리
 - 배포 실패 시 이전 리비전 롤백 절차 문서화
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)

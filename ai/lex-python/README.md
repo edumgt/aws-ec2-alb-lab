@@ -77,3 +77,9 @@ python3 ai/lex-python/lex_example.py
 - 테스트 별칭 ID는 `TSTALIASID` (콘솔에서 확인)
 - 프로덕션 배포 시 별도 별칭 생성 후 ID 교체
 - 요금: 텍스트 요청 1,000건당 $0.75, 음성 요청 1,000건당 $4.00
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)

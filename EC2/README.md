@@ -27,3 +27,9 @@ EC2 + VPC + ALB + Auto Scaling 실습을 단계별로 수행할 수 있도록 �
 ## 보안 주의
 - 본 폴더의 이미지(`*.png`)는 민감정보 보호를 위해 마스킹 처리되었습니다.
 - 문서 예시는 `vpc-xxxxxxxx`, `subnet-xxxxxxxx` 등 마스킹 표기를 사용합니다.
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)

@@ -60,3 +60,9 @@ aws elbv2 describe-target-health --target-group-arn <TG_ARN>
 - `unhealthy`: SG에서 ALB -> Task 8000 허용 확인
 - `Target registration failed`: Target type이 `instance`로 되어 있지 않은지 확인
 - `503`: 서비스 태스크 수 0 또는 헬스체크 실패
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)

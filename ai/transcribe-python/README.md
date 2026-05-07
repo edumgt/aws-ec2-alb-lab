@@ -62,3 +62,9 @@ python3 ai/transcribe-python/transcribe_example.py \
 - 최대 대기 시간은 코드 내 `MAX_WAIT_SECONDS = 300`으로 조정 가능
 - 화자 분리 기능은 `Settings.ShowSpeakerLabels = True` 로 활성화
 - 요금: 초당 $0.00004 (약 분당 $0.024), 처음 60분/월 무료 티어 제공
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)

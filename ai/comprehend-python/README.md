@@ -64,3 +64,9 @@ AWS re:Invent is an amazing conference held in Las Vegas every year. I love the 
 - 지원 언어: 한국어(`ko`), 영어(`en`) 포함 100개 이상
 - 요금: 100자 단위 과금 (최소 3유닛). 월 50,000유닛까지 무료 티어 제공
 - 개인정보(이름, 주소, 카드번호 등) 감지는 `detect_pii_entities` API 사용
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)

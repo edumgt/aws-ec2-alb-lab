@@ -80,3 +80,9 @@ python3 ai/polly-python/polly_example.py --list-voices --lang ko-KR
 - Neural 음성(`Seoyeon`)은 standard보다 자연스럽지만 요금이 약 4배 높음
 - 요금: 100만 자당 표준 $4.00 / Neural $16.00, 처음 500만 자/월 무료 티어 제공
 - 5분 이상 긴 텍스트는 `start_speech_synthesis_task` (비동기 S3 저장) 사용
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)

@@ -57,3 +57,9 @@ ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.y
 권장:
 - 장기 Access Key 대신 OIDC + IAM Role 사용
 - 배포 전후 헬스체크 알람(CloudWatch Alarm) 연동
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
