@@ -82,4 +82,4 @@ python3 ai/lex-python/lex_example.py
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+lex+python+README)

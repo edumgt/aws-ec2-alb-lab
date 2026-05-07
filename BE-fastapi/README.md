@@ -30,4 +30,4 @@ curl http://127.0.0.1:8000/health
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=BE+fastapi+README)

@@ -67,4 +67,4 @@ python3 ai/transcribe-python/transcribe_example.py \
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+transcribe+python+README)

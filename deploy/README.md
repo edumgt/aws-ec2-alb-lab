@@ -62,4 +62,4 @@ ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.y
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=deploy+README)

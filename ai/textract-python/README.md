@@ -62,4 +62,4 @@ python3 ai/textract-python/textract_example.py --file form.png --forms
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+textract+python+README)

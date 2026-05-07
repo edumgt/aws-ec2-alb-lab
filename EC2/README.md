@@ -32,4 +32,4 @@ EC2 + VPC + ALB + Auto Scaling 실습을 단계별로 수행할 수 있도록 �
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=EC2+README)

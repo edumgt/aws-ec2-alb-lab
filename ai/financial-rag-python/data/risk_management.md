@@ -11,4 +11,4 @@ Expected Shortfall(ES)은 VaR 임계치를 초과하는 구간의 평균 손실�
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+EC2+ECS+ALB+Lab)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+financial+rag+python+data+risk+management)
