@@ -55,11 +55,15 @@ def ask_bedrock(prompt: str) -> str:
         err = exc.response.get("Error", {})
         code = err.get("Code", "Unknown")
         message = err.get("Message", "No details")
-        raise RuntimeError(f"Bedrock 호출 실패({code}): {message}") from exc
+        raise RuntimeError(f"Bedrock model invocation failed ({code}): {message}") from exc
     except BotoCoreError as exc:
-        raise RuntimeError("AWS 연결 오류가 발생했습니다. 네트워크/리전 설정을 확인하세요.") from exc
+        raise RuntimeError(
+            f"AWS connection error ({type(exc).__name__}). Check network and region settings."
+        ) from exc
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Bedrock 응답 형식 파싱에 실패했습니다. 모델/SDK 버전을 확인하세요.") from exc
+        raise RuntimeError(
+            "Failed to parse Bedrock response format. Check model output schema and SDK version."
+        ) from exc
 
 
 if __name__ == "__main__":
