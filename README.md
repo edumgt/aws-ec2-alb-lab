@@ -48,9 +48,14 @@ aws-ec2-alb-lab/
 │       ├── inventory.ini
 │       └── group_vars/all.yml
 │
-├── ai/
-│   └── bedrock-python-llm/
-│       └── bedrock_claude_example.py   # Amazon Bedrock Claude 호출 샘플
+├── ai/                         # AWS AI 서비스별 Python 실습
+│   ├── bedrock-python-llm/         # Bedrock/Claude 호출 예시
+│   ├── comprehend-python/          # 감성 분석·개체명 인식·언어 감지
+│   ├── lex-python/                 # Lex v2 챗봇 대화 세션
+│   ├── polly-python/               # 텍스트→음성(TTS) 변환
+│   ├── rekognition-python/         # 이미지 레이블·얼굴·텍스트 분석
+│   ├── textract-python/            # 문서 OCR·폼(KEY-VALUE) 추출
+│   └── transcribe-python/          # 음성→텍스트(ASR) 변환
 │
 ├── assets/                     # 다이어그램 이미지
 │   ├── aws-study-flow.svg
@@ -72,7 +77,7 @@ aws-ec2-alb-lab/
 | `BE-fastapi` | FastAPI Hello World API, Docker 빌드·실행 |
 | `ag-grid-app` | 바닐라 HTML/JS 기반 AG Grid 정적 앱, Nginx 배포 |
 | `deploy` | Shell / Ansible / GitHub Actions 3가지 방식의 ECS 배포 자동화 |
-| `ai` | Amazon Bedrock + boto3로 Claude LLM 호출 |
+| `ai` | Bedrock, Comprehend, Lex, Polly, Rekognition, Textract, Transcribe 실습 예시 |
 
 ---
 
@@ -317,7 +322,24 @@ ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.y
 
 ### ai — AWS AI 서비스 Python 예시 모음
 
-`ai/` 폴더에는 Bedrock 외에도 Comprehend, Lex, Polly, Rekognition, Textract, Transcribe 예시가 함께 포함되어 있습니다.
+`ai/` 폴더는 **서비스별로 바로 실행 가능한 Python 샘플**을 모아둔 영역입니다.  
+각 하위 폴더는 `README.md`(사전 조건/권한/실행법) + `*_example.py`(실행 코드) 구조로 통일되어 있습니다.
+
+| 하위 폴더 | 다루는 서비스 | 실습 포인트 | 대표 실행 예시 |
+|---|---|---|---|
+| `ai/bedrock-python-llm` | Amazon Bedrock (Claude/Nova) | LLM 호출, 모델/리전 제약 확인 | `python3 ai/bedrock-python-llm/bedrock_claude_example.py` |
+| `ai/comprehend-python` | Amazon Comprehend | 감성 분석, 개체명 인식, 언어 감지 | `python3 ai/comprehend-python/comprehend_example.py` |
+| `ai/lex-python` | Amazon Lex v2 | Intent/Slot 기반 챗봇 대화 세션 | `python3 ai/lex-python/lex_example.py` |
+| `ai/polly-python` | Amazon Polly | 텍스트/SSML 음성 합성(MP3) | `python3 ai/polly-python/polly_example.py --text "안녕하세요"` |
+| `ai/rekognition-python` | Amazon Rekognition | 이미지 라벨·얼굴·텍스트 분석 | `python3 ai/rekognition-python/rekognition_example.py --file photo.jpg` |
+| `ai/textract-python` | Amazon Textract | 문서 OCR, 폼(KEY-VALUE) 분석 | `python3 ai/textract-python/textract_example.py --file sample.png --forms` |
+| `ai/transcribe-python` | Amazon Transcribe | 오디오 비동기 STT 변환 | `python3 ai/transcribe-python/transcribe_example.py --s3-uri s3://<bucket>/audio.mp3 --lang ko-KR` |
+
+공통 사전 준비:
+- AWS 자격 증명 설정 (`aws configure` 또는 EC2/ECS IAM Role)
+- `boto3` 설치
+- 서비스별 최소 IAM 권한 부여 (각 하위 README 표 참고)
+- 리전 일치 확인 (`AWS_REGION`)
 
 ```bash
 # 자격 증명 설정 (아래 중 하나)
