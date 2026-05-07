@@ -14,4 +14,4 @@
 ---
 
 ## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=LB+README)
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+Load+Balancer+ALB+NLB)
