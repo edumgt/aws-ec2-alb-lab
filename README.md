@@ -7,6 +7,7 @@ AWS 회원가입과 보안 기본 설정부터 EC2/ECS/ALB 실습까지 한 번�
 - `EC2`: VPC, Subnet, IGW, Route Table, AMI, Launch Template, ASG 실습
 - `ECS`: ECS/Fargate 핵심 개념 + 실습형 배포 가이드
 - `LB`: ALB/NLB 개념과 설정 포인트, 트러블슈팅
+- `ai`: Amazon Bedrock 기반 Python LLM 호출 예시
 - `BE-fastapi`: Docker 기반 FastAPI Hello World API 샘플
 - `ag-grid-app`: Nginx에 바로 올릴 수 있는 바닐라 HTML/JS 기반 AG Grid 정적 앱
  
@@ -56,6 +57,7 @@ curl http://127.0.0.1:8000/health
 - [FastAPI Docker 샘플](BE-fastapi/README.md)
 - [AG Grid 정적 앱](ag-grid-app/README.md)
 - [AWS CLI 배포 샘플 3종](deploy/README.md)
+- [AWS AI(Bedrock) Python LLM 예시](ai/bedrock-python-llm/README.md)
 
 ## 빠른 트러블슈팅
 - EC2 콘솔에서 `EC2 Instance Connect` 접속이 `Access denied`로 실패하면, `EC2/003.md`의 접속 점검 항목부터 확인합니다.
@@ -64,3 +66,4 @@ curl http://127.0.0.1:8000/health
 ## 보안 처리 안내
 - `EC2` 폴더의 스크린샷 이미지는 민감정보 노출 방지를 위해 마스킹 처리했습니다.
 - 문서 내 ID, 계정, IP, ARN 예시는 `xxxxxxxx` 형태로 표기했습니다.
+- 스크린샷 마스킹 스크립트: `tools/redact_ec2_images.py`

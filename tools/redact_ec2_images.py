@@ -2,10 +2,12 @@
 """Batch redact EC2 screenshots by pixelating common sensitive regions.
 
 No external dependencies. Supports PNG RGBA, 8-bit, non-interlaced.
+You can optionally set target directory with: --image-dir <path>.
 """
 
 from __future__ import annotations
 
+import argparse
 import glob
 import os
 import struct
@@ -242,7 +244,16 @@ def redact_png(path: str) -> None:
 
 
 def main() -> None:
-    files = sorted(glob.glob("EC2/*.png"))
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    parser = argparse.ArgumentParser(description="Redact PNG screenshots by pixelating sensitive regions.")
+    parser.add_argument(
+        "--image-dir",
+        default=os.path.join(repo_root, "EC2"),
+        help="Target directory for PNG files (default: <repo>/EC2)",
+    )
+    args = parser.parse_args()
+
+    files = sorted(glob.glob(os.path.join(args.image_dir, "*.png")))
     for p in files:
         redact_png(p)
     print(f"Redacted {len(files)} image(s).")
