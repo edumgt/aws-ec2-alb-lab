@@ -9,3 +9,9 @@
 - ALB/NLB 차이 이해
 - Listener/Rule/Target Group 기본 구조 숙지
 - 헬스체크 실패 시 진단 순서 확립
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=AWS+Load+Balancer+ALB+NLB)

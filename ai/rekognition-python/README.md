@@ -83,3 +83,9 @@ python3 ai/rekognition-python/rekognition_example.py \
 - 신뢰도 임계값은 코드 내 `CONFIDENCE_THRESHOLD = 80.0` 으로 조정 가능
 - 영상 분석(비동기)은 `start_label_detection` → `get_label_detection` 사용
 - 요금: 이미지 1,000건당 $1.00 (레이블 기준), 얼굴 분석은 별도 과금
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+rekognition+python+README)

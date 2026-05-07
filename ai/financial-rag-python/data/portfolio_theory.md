@@ -6,3 +6,9 @@
 
 리밸런싱은 목표 비중을 유지하면서 과도한 쏠림을 줄이는 핵심 운영 절차다.
 변동성 급등기에는 리스크 예산을 우선 관리하고, 거래비용을 고려한 점진적 조정이 필요하다.
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+financial+rag+python+data+portfolio+theory)

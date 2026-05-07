@@ -27,3 +27,9 @@ sudo systemctl reload nginx
 
 접속:
 `http://<EC2_PUBLIC_IP>/ag-grid-app/`
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ag+grid+app+README)

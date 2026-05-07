@@ -6,3 +6,9 @@
 
 콜옵션 매수 포지션은 일반적으로 델타 양수, 감마 양수, 세타 음수 특성을 가진다.
 헤지 전략 수립 시 포트폴리오 그릭스 합계를 관리해 방향성 리스크를 통제한다.
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+financial+rag+python+data+options+greeks)

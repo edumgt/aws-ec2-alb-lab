@@ -22,3 +22,9 @@
 - [ ] Target Group `healthy` 확인
 - [ ] CloudWatch 로그 확인 및 장애 원인 1개 이상 기록
 - [ ] 롤백 절차 문서화
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ECS+003+study+checklist)

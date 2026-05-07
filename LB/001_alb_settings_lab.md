@@ -35,3 +35,9 @@ aws elbv2 describe-target-health --target-group-arn <TG_ARN>
 - 헬스체크 엔드포인트는 앱 비즈니스 로직과 분리
 - `deregistration_delay`를 워크로드에 맞춰 조정
 - 배포 전/후 Target Health를 자동 확인하도록 스크립트화
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=LB+001+alb+settings+lab)

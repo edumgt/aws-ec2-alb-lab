@@ -13,3 +13,9 @@ ECS/Fargate 실습과 스터디를 위한 문서 모음입니다.
 - ECR 이미지 기반 서비스 배포
 - ALB와 ECS Service 연동
 - CloudWatch 로그/헬스체크 기반 점검
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ECS+README)

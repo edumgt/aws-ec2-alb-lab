@@ -6,3 +6,9 @@ Expected Shortfall(ES)은 VaR 임계치를 초과하는 구간의 평균 손실�
 
 금리 상승기에는 장기채 듀레이션 리스크가 커지기 때문에 채권 비중과 만기 구조를 재조정하는 전략이 필요하다.
 헤지 수단으로는 금리선물, 금리스왑, 혹은 단기채 중심 재편이 자주 활용된다.
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+financial+rag+python+data+risk+management)

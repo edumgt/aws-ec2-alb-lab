@@ -133,3 +133,9 @@ $ python3 ai/bedrock-python-llm/bedrock_claude_example.py
 ## 참고
 - `max_tokens=512` 고정. 비용 절감 시 `128`로 낮추고 호출 빈도를 제한하세요.
 - AWS Cost Explorer / 예산 알림을 함께 설정해 비용을 모니터링하세요.
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+bedrock+python+llm+README)

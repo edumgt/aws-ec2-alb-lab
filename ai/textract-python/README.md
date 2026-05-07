@@ -57,3 +57,9 @@ python3 ai/textract-python/textract_example.py --file form.png --forms
 - 동기 API(`detect_document_text`)는 최대 10MB, 3,000페이지 제한
 - 대용량·비동기 처리는 `start_document_text_detection` → `get_document_text_detection` 사용
 - 요금: 1,000페이지당 $1.50 (텍스트 감지 기준), 표/폼 분석은 별도 과금
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+textract+python+README)

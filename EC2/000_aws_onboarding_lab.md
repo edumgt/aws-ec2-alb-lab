@@ -109,3 +109,9 @@ aws ec2 describe-regions --output table
 
 ## 다음 Lab
 - 네트워크/인프라 실습으로 이동: [EC2/001.md](001.md)
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=EC2+000+aws+onboarding+lab)

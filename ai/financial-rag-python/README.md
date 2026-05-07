@@ -57,3 +57,9 @@ python3 ai/financial-rag-python/financial_rag_lab.py \
 ## 주의사항
 - 본 예시는 학습용이며 투자 자문이 아닙니다.
 - 실제 운영 시 최신 시장 데이터, 내부 컴플라이언스, 설명가능성 정책을 반영해야 합니다.
+
+
+---
+
+## YouTube 참고 영상
+- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ai+financial+rag+python+README)
