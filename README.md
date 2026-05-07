@@ -1,8 +1,9 @@
-# AWS EC2/ECS/LB 실습 저장소
+# AWS 초급자 EC2/ECS/LB 실습 저장소
 
-EC2 기반 인프라 구성부터 ECS Fargate 배포, ALB 설정까지 한 번에 학습할 수 있도록 정리한 저장소입니다.
+AWS 회원가입과 보안 기본 설정부터 EC2/ECS/ALB 실습까지 한 번에 따라갈 수 있도록 Lab 스타일로 정리한 저장소입니다.
 
 ## 학습 범위
+- `온보딩 Lab`: AWS 회원가입, IAM 설정, MFA(2단계 인증), AWS CLI 설치/검증
 - `EC2`: VPC, Subnet, IGW, Route Table, AMI, Launch Template, ASG 실습
 - `ECS`: ECS/Fargate 핵심 개념 + 실습형 배포 가이드
 - `LB`: ALB/NLB 개념과 설정 포인트, 트러블슈팅
@@ -10,11 +11,12 @@ EC2 기반 인프라 구성부터 ECS Fargate 배포, ALB 설정까지 한 번�
 - `ag-grid-app`: Nginx에 바로 올릴 수 있는 바닐라 HTML/JS 기반 AG Grid 정적 앱
  
 ## 권장 학습 순서
-1. `EC2/001.md` ~ `EC2/003.md` (네트워크 + ALB + ASG)
-2. `LB/001_alb_settings_lab.md` (리스너/타겟 그룹/헬스체크)
-3. `ECS/001_fargate_hands_on.md` (Fargate 실습)
-4. `ECS/002_ecs_alb_lab.md` (ECS + ALB 라우팅)
-5. `ECS/003_study_checklist.md` (스터디 질문/점검)
+1. `EC2/000_aws_onboarding_lab.md` (회원가입 + IAM + MFA + AWS CLI)
+2. `EC2/001.md` ~ `EC2/003.md` (네트워크 + ALB + ASG)
+3. `LB/001_alb_settings_lab.md` (리스너/타겟 그룹/헬스체크)
+4. `ECS/001_fargate_hands_on.md` (Fargate 실습)
+5. `ECS/002_ecs_alb_lab.md` (ECS + ALB 라우팅)
+6. `ECS/003_study_checklist.md` (스터디 질문/점검)
 
 ## Mermaid 순서도
 ```mermaid
@@ -48,6 +50,7 @@ curl http://127.0.0.1:8000/health
 
 ## 문서 인덱스
 - [EC2 학습 가이드](EC2/README.md)
+- [AWS 초급 온보딩 Lab](EC2/000_aws_onboarding_lab.md)
 - [ECS 학습 가이드](ECS/README.md)
 - [LB 학습 가이드](LB/README.md)
 - [FastAPI Docker 샘플](BE-fastapi/README.md)
