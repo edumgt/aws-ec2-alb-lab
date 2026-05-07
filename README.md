@@ -122,6 +122,36 @@ flowchart TD
 
 ---
 
+## 빠른 시작 (처음 방문한 경우)
+
+### 1) 최소 학습 동선
+- 인프라 기초부터 시작: [EC2/000_aws_onboarding_lab.md](EC2/000_aws_onboarding_lab.md) → [EC2/001.md](EC2/001.md) → [EC2/002.md](EC2/002.md)
+- ECS까지 확장: [ECS/aws_ecs_fargate_summary.md](ECS/aws_ecs_fargate_summary.md) → [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md)
+- 배포 자동화 연결: [deploy/README.md](deploy/README.md) + `.github/workflows/deploy-ecs-aws-cli.yml`
+
+### 2) 로컬에서 바로 실행해볼 샘플
+```bash
+# FastAPI 샘플
+cd BE-fastapi
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# AG Grid 정적 앱 (별도 터미널)
+cd ag-grid-app
+python3 -m http.server 8080
+```
+
+### 3) 학습 목적별 추천 진입점
+| 목적 | 먼저 볼 문서 |
+|---|---|
+| AWS 계정/보안 온보딩 | [EC2/000_aws_onboarding_lab.md](EC2/000_aws_onboarding_lab.md) |
+| ALB/Target Group 구조 이해 | [EC2/002.md](EC2/002.md), [LB/001_alb_settings_lab.md](LB/001_alb_settings_lab.md) |
+| ECS Fargate 배포 실습 | [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md) |
+| GitHub Actions 기반 배포 자동화 | [deploy/README.md](deploy/README.md), [.github/workflows/deploy-ecs-aws-cli.yml](.github/workflows/deploy-ecs-aws-cli.yml) |
+
+---
+
 ## 모듈별 상세 안내
 
 ### EC2 — 네트워크·인프라 실습
@@ -285,9 +315,9 @@ ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.y
 
 ---
 
-### ai — Amazon Bedrock Python LLM 예시
+### ai — AWS AI 서비스 Python 예시 모음
 
-`ai/bedrock-python-llm/bedrock_claude_example.py`에서 boto3로 Claude 모델을 호출하는 최소 예시를 제공합니다.
+`ai/` 폴더에는 Bedrock 외에도 Comprehend, Lex, Polly, Rekognition, Textract, Transcribe 예시가 함께 포함되어 있습니다.
 
 ```bash
 # 자격 증명 설정 (아래 중 하나)
@@ -303,6 +333,25 @@ python ai/bedrock-python-llm/bedrock_claude_example.py
 ```
 
 > Bedrock 모델 접근 권한(IAM + 모델 액세스)이 사전에 설정되어 있어야 합니다.
+
+---
+
+## 실습 종료 체크리스트 (비용/보안)
+
+- [ ] 미사용 ECS 서비스 Desired count를 0으로 조정 또는 서비스 삭제
+- [ ] 불필요한 ALB/Target Group 삭제
+- [ ] 테스트용 EC2 인스턴스/ASG/Launch Template 정리
+- [ ] 사용하지 않는 ECR 이미지 및 리포지토리 정리
+- [ ] 퍼블릭 노출 보안그룹 인바운드 규칙(0.0.0.0/0) 최소화
+- [ ] IAM 임시 권한·액세스 키 재검토
+
+참고 명령:
+```bash
+aws ecs list-services --cluster <CLUSTER_NAME>
+aws elbv2 describe-load-balancers
+aws ec2 describe-instances --filters Name=instance-state-name,Values=running
+aws ecr describe-repositories
+```
 
 ---
 
@@ -342,6 +391,12 @@ python ai/bedrock-python-llm/bedrock_claude_example.py
 | AG Grid 정적 앱 | [ag-grid-app/README.md](ag-grid-app/README.md) |
 | ECS 배포 자동화 3종 | [deploy/README.md](deploy/README.md) |
 | Bedrock Python LLM 예시 | [ai/bedrock-python-llm/README.md](ai/bedrock-python-llm/README.md) |
+| Comprehend Python 예시 | [ai/comprehend-python/README.md](ai/comprehend-python/README.md) |
+| Lex Python 예시 | [ai/lex-python/README.md](ai/lex-python/README.md) |
+| Polly Python 예시 | [ai/polly-python/README.md](ai/polly-python/README.md) |
+| Rekognition Python 예시 | [ai/rekognition-python/README.md](ai/rekognition-python/README.md) |
+| Textract Python 예시 | [ai/textract-python/README.md](ai/textract-python/README.md) |
+| Transcribe Python 예시 | [ai/transcribe-python/README.md](ai/transcribe-python/README.md) |
 
 ---
 
