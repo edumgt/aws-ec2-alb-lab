@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import os
-from functools import lru_cache
+import threading
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -18,11 +18,16 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 DEFAULT_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
 DEFAULT_REGION = "us-east-1"
+_thread_local = threading.local()
 
 
-@lru_cache(maxsize=8)
 def get_bedrock_client(region: str):
-    return boto3.client("bedrock-runtime", region_name=region)
+    current = getattr(_thread_local, "client", None)
+    current_region = getattr(_thread_local, "region", None)
+    if current is None or current_region != region:
+        _thread_local.client = boto3.client("bedrock-runtime", region_name=region)
+        _thread_local.region = region
+    return _thread_local.client
 
 
 def ask_bedrock(prompt: str) -> str:
@@ -47,7 +52,10 @@ def ask_bedrock(prompt: str) -> str:
         payload = json.loads(response["body"].read())
         return payload["content"][0]["text"]
     except ClientError as exc:
-        raise RuntimeError("Bedrock 호출이 거부되었습니다. IAM 권한/모델 접근 권한을 확인하세요.") from exc
+        err = exc.response.get("Error", {})
+        code = err.get("Code", "Unknown")
+        message = err.get("Message", "No details")
+        raise RuntimeError(f"Bedrock 호출 실패({code}): {message}") from exc
     except BotoCoreError as exc:
         raise RuntimeError("AWS 연결 오류가 발생했습니다. 네트워크/리전 설정을 확인하세요.") from exc
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
