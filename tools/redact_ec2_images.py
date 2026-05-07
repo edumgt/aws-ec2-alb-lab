@@ -242,7 +242,8 @@ def redact_png(path: str) -> None:
 
 
 def main() -> None:
-    files = sorted(glob.glob("EC2/*.png"))
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    files = sorted(glob.glob(os.path.join(repo_root, "EC2", "*.png")))
     for p in files:
         redact_png(p)
     print(f"Redacted {len(files)} image(s).")
