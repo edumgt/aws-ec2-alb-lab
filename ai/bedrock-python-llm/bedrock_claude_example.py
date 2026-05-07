@@ -4,6 +4,7 @@
 사전 준비:
 - AWS 자격 증명(예: aws configure)
 - Bedrock 모델 사용 권한
+- pip install boto3
 """
 
 from __future__ import annotations

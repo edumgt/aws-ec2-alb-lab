@@ -2,6 +2,7 @@
 """Batch redact EC2 screenshots by pixelating common sensitive regions.
 
 No external dependencies. Supports PNG RGBA, 8-bit, non-interlaced.
+You can optionally set target directory with: --image-dir <path>.
 """
 
 from __future__ import annotations
