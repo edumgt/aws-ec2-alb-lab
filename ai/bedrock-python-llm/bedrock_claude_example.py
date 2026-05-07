@@ -10,17 +10,26 @@ from __future__ import annotations
 
 import json
 import os
+from functools import lru_cache
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
 
-MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
-REGION = os.getenv("AWS_REGION", "us-east-1")
-BEDROCK_CLIENT = boto3.client("bedrock-runtime", region_name=REGION)
+DEFAULT_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+DEFAULT_REGION = "us-east-1"
+
+
+@lru_cache(maxsize=8)
+def get_bedrock_client(region: str):
+    return boto3.client("bedrock-runtime", region_name=region)
 
 
 def ask_bedrock(prompt: str) -> str:
+    model_id = os.getenv("BEDROCK_MODEL_ID", DEFAULT_MODEL_ID)
+    region = os.getenv("AWS_REGION", DEFAULT_REGION)
+    client = get_bedrock_client(region)
+
     body = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 512,
@@ -29,16 +38,20 @@ def ask_bedrock(prompt: str) -> str:
     }
 
     try:
-        response = BEDROCK_CLIENT.invoke_model(
-            modelId=MODEL_ID,
+        response = client.invoke_model(
+            modelId=model_id,
             contentType="application/json",
             accept="application/json",
             body=json.dumps(body),
         )
         payload = json.loads(response["body"].read())
         return payload["content"][0]["text"]
-    except (ClientError, BotoCoreError, KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Bedrock 응답 처리에 실패했습니다. 모델 권한/응답 형식을 확인하세요.") from exc
+    except ClientError as exc:
+        raise RuntimeError("Bedrock 호출이 거부되었습니다. IAM 권한/모델 접근 권한을 확인하세요.") from exc
+    except BotoCoreError as exc:
+        raise RuntimeError("AWS 연결 오류가 발생했습니다. 네트워크/리전 설정을 확인하세요.") from exc
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Bedrock 응답 형식 파싱에 실패했습니다. 모델/SDK 버전을 확인하세요.") from exc
 
 
 if __name__ == "__main__":
