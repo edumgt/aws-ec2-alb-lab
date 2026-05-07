@@ -17,7 +17,8 @@ aws-ec2-alb-lab/
 │   ├── 004.md                      # 콘솔 기반 AMI·Template·ASG 체크리스트
 │   ├── 005.md                      # 애플리케이션 런타임 준비 (JDK·SFTP)
 │   ├── 008.md                      # 운영 점검용 CLI 조회 명령 모음
-│   └── template.json               # Launch Template 예시 JSON
+│   ├── template.json               # Launch Template 예시 JSON
+│   └── redact_ec2_images.py        # EC2 스크린샷 민감정보 마스킹 스크립트
 │
 ├── ECS/                        # ECS Fargate 배포 실습
 │   ├── aws_ecs_fargate_summary.md  # ECS·Fargate 핵심 개념 정리
@@ -61,9 +62,6 @@ aws-ec2-alb-lab/
 ├── assets/                     # 다이어그램 이미지
 │   ├── aws-study-flow.svg
 │   └── aws-cloud-architecture.svg
-│
-└── tools/
-    └── redact_ec2_images.py    # 스크린샷 민감정보 마스킹 스크립트
 ```
 
 ---
@@ -440,7 +438,7 @@ aws ecr describe-repositories
 - 문서 내 계정 ID, IP, ARN, 리소스 ID 예시는 `xxxxxxxx` 형태로 표기했습니다.
 - 실습 종료 후 미사용 리소스(ALB, EC2, ECS 서비스, EIP)를 즉시 삭제해 불필요한 비용을 방지합니다.
 - Access Key는 공개 저장소에 커밋하지 않습니다. 가능하면 IAM Role + OIDC를 우선 사용합니다.
-- 스크린샷 마스킹 스크립트: [`tools/redact_ec2_images.py`](tools/redact_ec2_images.py)
+- 스크린샷 마스킹 스크립트: [`EC2/redact_ec2_images.py`](EC2/redact_ec2_images.py)
 
 
 ---
