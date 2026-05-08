@@ -1,5 +1,13 @@
 # AWS 초급자 EC2/ECS/LB 실습 저장소
 
+---
+
+| ◀ 이전 강의 | 📚 커리큘럼 (5 / 10) | 다음 강의 ▶ |
+|:---|:---:|---:|
+| [← Docker 실습](https://github.com/edumgt/docker-class) | **AWS EC2 / ALB 실습** | [OpenStack 프라이빗 클라우드 →](https://github.com/edumgt/openstack-private-cloud) |
+
+---
+
 AWS 회원가입·보안 기본 설정부터 EC2 네트워크, ALB, Auto Scaling, ECS Fargate 배포까지  
 Lab 스타일로 단계별로 따라갈 수 있도록 정리한 저장소입니다.
 
