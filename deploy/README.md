@@ -68,6 +68,8 @@ GitHub Actions가 ECR 빌드/푸시 후 EC2에 `docker compose` 배포할 수 �
 export AWS_REGION="ap-northeast-2"
 export LAB_NAME="investment-analysis"
 export AWS_ACCOUNT_ID="YOUR_ACCOUNT_ID"         # 예: 111111111111
+export WEBAPP_ECR_REPOSITORY="investment-analysis-webapp"
+export MONGODB_ECR_REPOSITORY="investment-analysis-mongodb"
 export VPC_ID="<기존 VPC ID>"
 export PUBLIC_SUBNET_ID="<퍼블릭 서브넷 ID>"
 export MY_IP_CIDR="<내 공인IP>/32"              # 예: 1.2.3.4/32
@@ -89,9 +91,10 @@ aws ec2 authorize-security-group-ingress \
   --group-id "$EC2_SG_ID" \
   --ip-permissions \
   "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=$MY_IP_CIDR,Description=ssh-from-admin}]" \
-  "IpProtocol=tcp,FromPort=8000,ToPort=8000,IpRanges=[{CidrIp=0.0.0.0/0,Description=webapp-http}]" \
+  "IpProtocol=tcp,FromPort=8000,ToPort=8000,IpRanges=[{CidrIp=$MY_IP_CIDR,Description=webapp-http-from-admin}]" \
   --region "$AWS_REGION"
 ```
+> 학습 편의로 외부 공개가 필요하면 8000 포트 CIDR을 별도 지정하되, 운영 환경에서는 0.0.0.0/0 개방을 피하세요.
 
 ### 4-3. GitHub Actions Assume Role 생성 (OIDC)
 > OIDC Provider(`token.actions.githubusercontent.com`)가 계정에 없다면 먼저 생성해야 합니다.
@@ -102,7 +105,7 @@ aws ec2 authorize-security-group-ingress \
 aws iam create-open-id-connect-provider \
   --url "https://token.actions.githubusercontent.com" \
   --client-id-list "sts.amazonaws.com" \
-  --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1"
+  --thumbprint-list "1b511abead59c6ce207077c0bf0e0043b1382612"
 ```
 > thumbprint 값은 인증서 교체로 바뀔 수 있으니 실행 전 AWS/GitHub 공식 문서의 최신 값을 확인하세요.
 > - AWS IAM OIDC Provider: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
@@ -140,8 +143,12 @@ cat > gha-deploy-policy.json <<JSON
   "Statement": [
     {
       "Effect": "Allow",
+      "Action": ["ecr:GetAuthorizationToken"],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
       "Action": [
-        "ecr:GetAuthorizationToken",
         "ecr:BatchCheckLayerAvailability",
         "ecr:CompleteLayerUpload",
         "ecr:UploadLayerPart",
@@ -151,7 +158,10 @@ cat > gha-deploy-policy.json <<JSON
         "ecr:DescribeRepositories",
         "ecr:CreateRepository"
       ],
-      "Resource": "*"
+      "Resource": [
+        "arn:aws:ecr:${AWS_REGION}:${AWS_ACCOUNT_ID}:repository/${WEBAPP_ECR_REPOSITORY}",
+        "arn:aws:ecr:${AWS_REGION}:${AWS_ACCOUNT_ID}:repository/${MONGODB_ECR_REPOSITORY}"
+      ]
     }
   ]
 }
