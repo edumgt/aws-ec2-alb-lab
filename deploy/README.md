@@ -75,7 +75,7 @@ export INSTANCE_TYPE="t3.small"
 export AMI_ID="<Amazon Linux 2023 AMI ID>"
 ```
 
-> VPC/Subnet이 없다면 `EC2/001.md` 순서대로 먼저 생성합니다.
+> VPC/Subnet이 없다면 [`../EC2/001.md`](../EC2/001.md) 순서대로 먼저 생성합니다.
 
 ### 4-2. 보안그룹 생성 (SSH + 앱 포트)
 ```bash
@@ -120,7 +120,7 @@ aws iam create-role \
 
 권한 정책 파일(`gha-deploy-policy.json`)을 연결합니다.
 ```bash
-cat > gha-deploy-policy.json <<'JSON'
+cat > gha-deploy-policy.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -193,7 +193,7 @@ EOF
 `deploy-ecr-ec2.yml` 기준 필수값은 다음과 같습니다.
 
 - **Secrets**
-  - `AWS_ROLE_ARN`: `arn:aws:iam::<AWS_ACCOUNT_ID>:role/<LAB_NAME>-github-actions-role` (실제 값으로 치환)
+  - `AWS_ROLE_ARN`: `arn:aws:iam::123456789012:role/investment-analysis-github-actions-role` (예시)
   - `EC2_HOST`: `EC2_PUBLIC_IP`
   - `EC2_USERNAME`: `ec2-user` (Ubuntu AMI면 `ubuntu`)
   - `EC2_SSH_KEY`: `${LAB_NAME}-key.pem` 전체 내용
