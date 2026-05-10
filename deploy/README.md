@@ -110,6 +110,7 @@ aws iam create-open-id-connect-provider \
 > thumbprint 값은 인증서 교체로 바뀔 수 있으니 실행 전 AWS/GitHub 공식 문서의 최신 값을 확인하세요.
 > - AWS IAM OIDC Provider: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
 > - GitHub OIDC in AWS: https://docs.github.com/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
+> - 확인 예시: `echo | openssl s_client -servername token.actions.githubusercontent.com -showcerts -connect token.actions.githubusercontent.com:443 2>/dev/null | openssl x509 -fingerprint -noout -sha1`
 
 신뢰 정책 파일(`trust-policy.json`)을 만든 뒤 Role을 생성합니다.
 ```bash
@@ -184,6 +185,7 @@ if ! aws ec2 describe-key-pairs --key-names "${LAB_NAME}-key" --region "$AWS_REG
 else
   echo "KeyPair ${LAB_NAME}-key already exists. 기존 pem 파일이 로컬에 있어야 접속 가능합니다."
   echo "pem 파일이 없다면 AWS에서 기존 키페어를 삭제한 뒤 다시 생성하세요."
+  echo "주의: 기존 키페어를 삭제/재생성하면 기존 인스턴스 SSH 접근이 끊길 수 있습니다."
 fi
 
 INSTANCE_ID=$(aws ec2 run-instances \
@@ -208,13 +210,13 @@ echo "$EC2_PUBLIC_IP"
 
 ### 4-5. EC2에 Docker / Compose 설치
 ```bash
-ssh -i "${LAB_NAME}-key.pem" ec2-user@"$EC2_PUBLIC_IP" <<'EOF'
+ssh -i "${LAB_NAME}-key.pem" ec2-user@"$EC2_PUBLIC_IP" <<EOF
 set -euo pipefail
 sudo dnf -y update
 sudo dnf -y install docker
 sudo systemctl enable --now docker
 sudo usermod -aG docker ec2-user
-sudo mkdir -p /home/ec2-user/investment-analysis
+sudo mkdir -p "/home/ec2-user/${LAB_NAME}"
 EOF
 ```
 
