@@ -97,6 +97,14 @@ aws ec2 authorize-security-group-ingress \
 > OIDC Provider(`token.actions.githubusercontent.com`)가 계정에 없다면 먼저 생성해야 합니다.
 > 기존 계정에 이미 설정된 경우 아래 Role 생성 단계부터 진행하면 됩니다.
 
+없다면 다음처럼 생성합니다.
+```bash
+aws iam create-open-id-connect-provider \
+  --url "https://token.actions.githubusercontent.com" \
+  --client-id-list "sts.amazonaws.com" \
+  --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1"
+```
+
 신뢰 정책 파일(`trust-policy.json`)을 만든 뒤 Role을 생성합니다.
 ```bash
 cat > trust-policy.json <<JSON
@@ -154,11 +162,15 @@ aws iam put-role-policy \
 
 ### 4-4. EC2 접속용 Key Pair와 인스턴스 생성
 ```bash
-aws ec2 create-key-pair \
-  --key-name "${LAB_NAME}-key" \
-  --query 'KeyMaterial' --output text \
-  --region "$AWS_REGION" > "${LAB_NAME}-key.pem"
-chmod 400 "${LAB_NAME}-key.pem"
+if ! aws ec2 describe-key-pairs --key-names "${LAB_NAME}-key" --region "$AWS_REGION" >/dev/null 2>&1; then
+  aws ec2 create-key-pair \
+    --key-name "${LAB_NAME}-key" \
+    --query 'KeyMaterial' --output text \
+    --region "$AWS_REGION" > "${LAB_NAME}-key.pem"
+  chmod 400 "${LAB_NAME}-key.pem"
+else
+  echo "KeyPair ${LAB_NAME}-key already exists. 기존 pem 파일을 사용하세요."
+fi
 
 INSTANCE_ID=$(aws ec2 run-instances \
   --image-id "$AMI_ID" \
@@ -191,6 +203,8 @@ sudo usermod -aG docker ec2-user
 sudo mkdir -p /home/ec2-user/investment-analysis
 EOF
 ```
+
+> `usermod -aG docker` 반영을 위해 SSH 세션을 다시 접속하거나 `newgrp docker`를 실행해야 합니다.
 
 ### 4-6. GitHub 저장소 Secrets / Variables 매핑
 `deploy-ecr-ec2.yml` 기준 필수값은 다음과 같습니다.
