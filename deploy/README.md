@@ -75,7 +75,7 @@ export INSTANCE_TYPE="t3.small"
 export AMI_ID="<Amazon Linux 2023 AMI ID>"
 ```
 
-> VPC/Subnet이 없다면 [`../EC2/001.md`](../EC2/001.md) 순서대로 먼저 생성합니다.
+> VPC/Subnet이 없다면 [EC2/001.md](https://github.com/edumgt/aws-ec2-alb-lab/blob/main/EC2/001.md) 순서대로 먼저 생성합니다.
 
 ### 4-2. 보안그룹 생성 (SSH + 앱 포트)
 ```bash
@@ -104,6 +104,7 @@ aws iam create-open-id-connect-provider \
   --client-id-list "sts.amazonaws.com" \
   --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1"
 ```
+> thumbprint 값은 인증서 교체로 바뀔 수 있으니 실행 전 AWS/GitHub 공식 문서의 최신 값을 확인하세요.
 
 신뢰 정책 파일(`trust-policy.json`)을 만든 뒤 Role을 생성합니다.
 ```bash
@@ -169,7 +170,8 @@ if ! aws ec2 describe-key-pairs --key-names "${LAB_NAME}-key" --region "$AWS_REG
     --region "$AWS_REGION" > "${LAB_NAME}-key.pem"
   chmod 400 "${LAB_NAME}-key.pem"
 else
-  echo "KeyPair ${LAB_NAME}-key already exists. 기존 pem 파일을 사용하세요."
+  echo "KeyPair ${LAB_NAME}-key already exists. 기존 pem 파일이 로컬에 있어야 접속 가능합니다."
+  echo "pem 파일이 없다면 AWS에서 기존 키페어를 삭제한 뒤 다시 생성하세요."
 fi
 
 INSTANCE_ID=$(aws ec2 run-instances \
