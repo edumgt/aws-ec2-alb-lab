@@ -67,7 +67,7 @@ GitHub Actions가 ECR 빌드/푸시 후 EC2에 `docker compose` 배포할 수 �
 ```bash
 export AWS_REGION="ap-northeast-2"
 export LAB_NAME="investment-analysis"
-export AWS_ACCOUNT_ID="<12자리 AWS 계정 ID>"
+export AWS_ACCOUNT_ID="<AWS 계정 ID (12자리)>"
 export VPC_ID="<기존 VPC ID>"
 export PUBLIC_SUBNET_ID="<퍼블릭 서브넷 ID>"
 export MY_IP_CIDR="<내 공인IP>/32"              # 예: 1.2.3.4/32
@@ -193,7 +193,7 @@ EOF
 `deploy-ecr-ec2.yml` 기준 필수값은 다음과 같습니다.
 
 - **Secrets**
-  - `AWS_ROLE_ARN`: `arn:aws:iam::${AWS_ACCOUNT_ID}:role/${LAB_NAME}-github-actions-role`
+  - `AWS_ROLE_ARN`: `arn:aws:iam::<AWS_ACCOUNT_ID>:role/<LAB_NAME>-github-actions-role` (실제 값으로 치환)
   - `EC2_HOST`: `EC2_PUBLIC_IP`
   - `EC2_USERNAME`: `ec2-user` (Ubuntu AMI면 `ubuntu`)
   - `EC2_SSH_KEY`: `${LAB_NAME}-key.pem` 전체 내용
