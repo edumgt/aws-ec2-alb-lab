@@ -310,7 +310,7 @@ ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.y
 
 추가 실습:
 - `deploy/README.md`의 **4) 실습: `deploy-ecr-ec2.yml`용 AWS CLI 인프라 구성**
-- 참조 워크플로우: `edumgt/investment-analysis/.github/workflows/deploy-ecr-ec2.yml`
+- 참조 워크플로우: [deploy-ecr-ec2.yml](https://github.com/edumgt/investment-analysis/blob/main/.github/workflows/deploy-ecr-ec2.yml)
 
 필수 GitHub 설정:
 - **Secrets**: `AWS_ROLE_TO_ASSUME` (OIDC Assume할 Role ARN)

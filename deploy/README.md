@@ -60,13 +60,14 @@ ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.y
 
 ## 4) 실습: `deploy-ecr-ec2.yml`용 AWS CLI 인프라 구성
 
-아래 실습은 `https://github.com/edumgt/investment-analysis/blob/main/.github/workflows/deploy-ecr-ec2.yml` 기준으로,
+아래 실습은 [deploy-ecr-ec2.yml](https://github.com/edumgt/investment-analysis/blob/main/.github/workflows/deploy-ecr-ec2.yml) 기준으로,
 GitHub Actions가 ECR 빌드/푸시 후 EC2에 `docker compose` 배포할 수 있는 최소 인프라를 AWS CLI로 준비하는 예시입니다.
 
 ### 4-1. 환경변수 준비
 ```bash
 export AWS_REGION="ap-northeast-2"
 export LAB_NAME="investment-analysis"
+export AWS_ACCOUNT_ID="<12자리 AWS 계정 ID>"
 export VPC_ID="<기존 VPC ID>"
 export PUBLIC_SUBNET_ID="<퍼블릭 서브넷 ID>"
 export MY_IP_CIDR="<내 공인IP>/32"              # 예: 1.2.3.4/32
@@ -95,13 +96,13 @@ aws ec2 authorize-security-group-ingress \
 ### 4-3. GitHub Actions Assume Role 생성 (OIDC)
 신뢰 정책 파일(`trust-policy.json`)을 만든 뒤 Role을 생성합니다.
 ```bash
-cat > trust-policy.json <<'JSON'
+cat > trust-policy.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
-      "Principal": { "Federated": "arn:aws:iam::<AWS_ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com" },
+      "Principal": { "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com" },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
@@ -192,7 +193,7 @@ EOF
 `deploy-ecr-ec2.yml` 기준 필수값은 다음과 같습니다.
 
 - **Secrets**
-  - `AWS_ROLE_ARN`: `arn:aws:iam::<AWS_ACCOUNT_ID>:role/${LAB_NAME}-github-actions-role`
+  - `AWS_ROLE_ARN`: `arn:aws:iam::${AWS_ACCOUNT_ID}:role/${LAB_NAME}-github-actions-role`
   - `EC2_HOST`: `EC2_PUBLIC_IP`
   - `EC2_USERNAME`: `ec2-user` (Ubuntu AMI면 `ubuntu`)
   - `EC2_SSH_KEY`: `${LAB_NAME}-key.pem` 전체 내용
