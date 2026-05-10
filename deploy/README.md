@@ -67,7 +67,7 @@ GitHub Actions가 ECR 빌드/푸시 후 EC2에 `docker compose` 배포할 수 �
 ```bash
 export AWS_REGION="ap-northeast-2"
 export LAB_NAME="investment-analysis"
-export AWS_ACCOUNT_ID="123456789012"            # 본인 AWS 계정 ID로 변경
+export AWS_ACCOUNT_ID="YOUR_ACCOUNT_ID"         # 예: 111111111111
 export VPC_ID="<기존 VPC ID>"
 export PUBLIC_SUBNET_ID="<퍼블릭 서브넷 ID>"
 export MY_IP_CIDR="<내 공인IP>/32"              # 예: 1.2.3.4/32
@@ -105,6 +105,8 @@ aws iam create-open-id-connect-provider \
   --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1"
 ```
 > thumbprint 값은 인증서 교체로 바뀔 수 있으니 실행 전 AWS/GitHub 공식 문서의 최신 값을 확인하세요.
+> - AWS IAM OIDC Provider: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
+> - GitHub OIDC in AWS: https://docs.github.com/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
 
 신뢰 정책 파일(`trust-policy.json`)을 만든 뒤 Role을 생성합니다.
 ```bash
