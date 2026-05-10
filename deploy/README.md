@@ -110,7 +110,9 @@ aws ec2 authorize-security-group-ingress \
 없다면 다음처럼 생성합니다.
 ```bash
 # 먼저 최신 thumbprint를 확인한 뒤 아래 create 명령에 반영하세요.
-echo | openssl s_client -servername token.actions.githubusercontent.com -showcerts -connect token.actions.githubusercontent.com:443 2>/dev/null | openssl x509 -fingerprint -noout -sha1
+echo | openssl s_client -servername token.actions.githubusercontent.com -showcerts -connect token.actions.githubusercontent.com:443 2>/dev/null \
+  | openssl x509 -fingerprint -noout -sha1 \
+  | cut -d'=' -f2 | tr -d ':'
 
 aws iam create-open-id-connect-provider \
   --url "https://token.actions.githubusercontent.com" \
@@ -120,6 +122,7 @@ aws iam create-open-id-connect-provider \
 > thumbprint 값은 인증서 교체로 바뀔 수 있으니 실행 전 AWS/GitHub 공식 문서의 최신 값을 확인하세요.
 > - AWS IAM OIDC Provider: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
 > - GitHub OIDC in AWS: https://docs.github.com/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
+> - 아래 예시 thumbprint 값은 바뀔 수 있으므로 그대로 사용하지 말고 반드시 위 명령/공식 문서로 검증하세요.
 
 신뢰 정책 파일(`trust-policy.json`)을 만든 뒤 Role을 생성합니다.
 ```bash
@@ -221,7 +224,7 @@ echo "$EC2_PUBLIC_IP"
 ### 4-5. EC2에 Docker / Compose 설치
 ```bash
 ssh -i "${KEY_NAME}.pem" ec2-user@"$EC2_PUBLIC_IP" <<EOF
-set -euo pipefail
+set -uo pipefail
 sudo dnf -y update
 sudo dnf -y install docker
 sudo systemctl enable --now docker
