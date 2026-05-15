@@ -3,6 +3,80 @@
 
 ---
 
+## 시작 전에: 개인별 필수 준비 가이드
+
+이 저장소는 **AWS 계정 보안 설정 → EC2/VPC/ALB → ECS Fargate 배포** 순서로 진행합니다.  
+아래 항목을 먼저 갖추면 실습 중단 없이 진행할 수 있습니다.
+
+### 1) 개인별 습득 권장 기술 스택
+
+| 구분 | 최소 필요 수준 | 왜 필요한가 |
+|---|---|---|
+| AWS 기본 | IAM 사용자/권한, 리전, VPC 개념을 이해 | 계정/보안/네트워크 실습의 전제 |
+| 네트워크 | CIDR, Subnet, Route Table, IGW/NAT 차이 이해 | `EC2/001.md`, `EC2/002.md` 실습 정확도 향상 |
+| 리눅스 기초 | SSH 접속, 파일 전송, 기본 명령(`cd`, `ls`, `cat`, `systemctl`) | EC2 인스턴스 점검/운영 실습에 필요 |
+| 컨테이너 기초 | Docker 이미지 빌드/실행, 태그 개념 | ECS/ECR 실습(`ECS/001_fargate_hands_on.md`) 필수 |
+| Python 기초 | 가상환경(venv), `pip`, FastAPI 실행 | `BE-fastapi`, `ai/*` 실습에 필요 |
+| Git/GitHub | 저장소 클론, 브랜치/PR, GitHub Actions 개념 | `deploy` 모듈과 CI/CD 흐름 이해 |
+
+### 2) 권장 개인 PC 사양
+
+| 항목 | 최소 사양 | 권장 사양 |
+|---|---|---|
+| CPU | 2코어 이상 | 4코어 이상 |
+| 메모리(RAM) | 8GB | 16GB 이상 |
+| 저장공간 | 여유 10GB 이상 | 여유 20GB 이상 (Docker 이미지/로그 포함) |
+| OS | Windows 10+, macOS 12+, Ubuntu 20.04+ | 최신 안정 버전 |
+| 네트워크 | 안정적인 인터넷(업/다운 모두) | 유선 또는 고품질 Wi-Fi |
+
+권장 로컬 도구:
+- AWS CLI v2
+- Python 3.10+
+- Docker Desktop(또는 Docker Engine)
+- Git + VS Code(또는 선호 IDE)
+- MFA 앱(예: Google Authenticator, Microsoft Authenticator)
+
+### 3) 가입/생성해야 할 플랫폼·계정
+
+| 플랫폼 | 필수 여부 | 용도 |
+|---|---|---|
+| AWS 계정 | 필수 | EC2, ALB, ECS, ECR 등 실습 리소스 생성 |
+| GitHub 계정 | 권장(배포 자동화는 사실상 필수) | 소스 관리, GitHub Actions 기반 배포 |
+| MFA 인증 앱 설치 | 필수 | 루트/IAM 사용자 MFA 활성화 |
+| Docker Hub 계정 | 선택 | 로컬 컨테이너 학습 보조(본 실습 핵심 배포는 ECR 사용) |
+
+필수 선행 완료 체크:
+- [ ] AWS 계정 결제 수단 등록 + 본인 인증 완료
+- [ ] 루트 계정 MFA 활성화
+- [ ] IAM 관리자 사용자 생성 + MFA 활성화
+- [ ] `aws configure` 및 `aws sts get-caller-identity` 성공
+
+### 4) 예상 비용(카드 청구 예상금액)
+
+> 아래는 **서울 리전(ap-northeast-2), 온디맨드, 학습용 단기 사용** 기준의 보수적 추정치입니다.  
+> 실제 청구는 사용 시간/트래픽/리소스 개수에 따라 달라지며, 반드시 AWS Billing 콘솔에서 실시간 확인하세요.
+
+가정:
+- 환율: 1 USD = 1,400 KRW(예시, 실제 결제 전 최신 환율 확인)
+- 실습 중 주요 비용 리소스: ALB, EC2, ECS(Fargate), ECR 저장소, CloudWatch 로그
+- 하루 실습 후 미사용 리소스 즉시 삭제
+
+| 시나리오 | 사용 패턴(예시) | 예상 총비용(USD) | 카드 청구 예상(원화) |
+|---|---|---:|---:|
+| 1일 집중 실습 | ALB 6~8시간 + EC2 1~2대 단기 + ECS Task 단기 | 약 $2 ~ $8 | 약 2,800원 ~ 11,200원 |
+| 1주(평일 저녁) 실습 | 평일 2~3시간씩 리소스 기동/종료 반복 | 약 $10 ~ $35 | 약 14,000원 ~ 49,000원 |
+| 24시간 상시 방치 | ALB/EC2/ECS를 중지하지 않고 유지 | 약 $40+ / 월 이상 가능 | 약 56,000원+/월 이상 가능 |
+
+비용 절감 핵심:
+- 실습 종료 즉시 `ALB`, `EC2`, `ECS Service`, `EIP`, 불필요 `ECR` 이미지를 삭제
+- ECS 서비스는 미사용 시 Desired Count를 0으로 조정
+- Billing Alarm(예: 10 USD, 30 USD) 사전 설정
+- 프리티어 대상 여부를 계정 생성 시점 기준으로 확인
+  - AWS Free Tier: https://aws.amazon.com/free/
+  - AWS Billing 콘솔의 Free Tier 페이지에서 월별 사용량/잔여량 확인
+
+---
+
 ## 저장소 구조
 
 ```
