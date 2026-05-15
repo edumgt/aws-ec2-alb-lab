@@ -72,6 +72,8 @@
 - ECS 서비스는 미사용 시 Desired Count를 0으로 조정
 - Billing Alarm(예: 10 USD, 30 USD) 사전 설정
 - 프리티어 대상 여부를 계정 생성 시점 기준으로 확인
+  - AWS Free Tier: https://aws.amazon.com/free/
+  - AWS Billing 콘솔의 Free Tier 페이지에서 월별 사용량/잔여량 확인
 
 ---
 
