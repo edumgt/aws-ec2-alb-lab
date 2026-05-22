@@ -3,7 +3,7 @@
 __pycache__/
 *.pyc
 
-
+*.key
+.venv/
 
 *.pem
-test.md
