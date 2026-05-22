@@ -228,6 +228,229 @@ python3 -m http.server 8080
 
 ---
 
+## AWS 기본 설정 후 웹앱 모듈 배포 가이드
+
+이 가이드는 **AWS 기본 설정(IAM·VPC·ALB)이 완료된 이후**, 이 저장소의 웹앱 모듈들을 AWS에 실제로 배포하는 전체 흐름을 다룹니다.
+
+### 배포 전 체크리스트
+
+```bash
+# AWS 자격 증명 확인
+aws sts get-caller-identity
+
+# VPC 및 서브넷 확인
+aws ec2 describe-vpcs \
+  --query 'Vpcs[*].[VpcId,CidrBlock,Tags[?Key==`Name`].Value|[0]]' --output table
+aws ec2 describe-subnets \
+  --query 'Subnets[*].[SubnetId,VpcId,CidrBlock,AvailabilityZone]' --output table
+
+# ALB 존재 여부 확인
+aws elbv2 describe-load-balancers \
+  --query 'LoadBalancers[*].[LoadBalancerName,DNSName,State.Code]' --output table
+```
+
+필수 완료 항목:
+- [ ] `aws sts get-caller-identity` 정상 응답
+- [ ] VPC + 퍼블릭 서브넷 2개 이상 생성 완료 ([EC2/001.md](EC2/001.md) 참조)
+- [ ] Internet Gateway + Route Table 설정 완료
+- [ ] ALB + Target Group + Listener 생성 완료 ([EC2/002.md](EC2/002.md) 참조)
+
+---
+
+### 배포 시나리오 1 — BE-fastapi를 EC2에 직접 배포
+
+**대상**: FastAPI Hello World API (`BE-fastapi/`)  
+**인프라**: EC2 인스턴스 (Amazon Linux 2023)  
+**포트**: 8000
+
+```bash
+# EC2 인스턴스 SSH 접속
+ssh -i <KEY_NAME>.pem ec2-user@<EC2_PUBLIC_IP>
+
+# 패키지 설치 (EC2 내부)
+sudo dnf -y update
+sudo dnf -y install python3 python3-pip git
+
+# 소스 클론 및 의존성 설치
+git clone https://github.com/edumgt/aws-ec2-alb-lab.git
+cd aws-ec2-alb-lab/BE-fastapi
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 앱 실행 (백그라운드)
+nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+
+# 동작 확인
+curl http://localhost:8000/
+curl http://localhost:8000/health
+```
+
+ALB Target Group에 EC2를 등록한 경우:
+```bash
+curl http://<ALB_DNS_NAME>/
+curl http://<ALB_DNS_NAME>/health
+```
+
+---
+
+### 배포 시나리오 2 — BE-fastapi를 Docker로 EC2에 배포
+
+**대상**: FastAPI Docker 이미지 (`BE-fastapi/Dockerfile`)  
+**사전 조건**: EC2에 Docker 설치 완료 ([deploy/README.md 4-5절](deploy/README.md) 참조)
+
+```bash
+# EC2 내부에서 실행
+cd aws-ec2-alb-lab/BE-fastapi
+
+# Docker 빌드 및 컨테이너 실행
+docker build -t be-fastapi-hello .
+docker run -d --name fastapi-app --restart unless-stopped -p 8000:8000 be-fastapi-hello
+
+# 상태 확인
+docker ps
+curl http://localhost:8000/health
+```
+
+---
+
+### 배포 시나리오 3 — BE-fastapi를 ECS Fargate로 배포
+
+**대상**: FastAPI Docker 이미지 → ECR → ECS Fargate  
+**사전 조건**: ECS 클러스터, ALB(ip 타입 Target Group) 준비
+
+```bash
+export AWS_REGION="ap-northeast-2"
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ECR_REPO="be-fastapi-hello"
+
+# 1. ECR 리포지토리 생성
+aws ecr create-repository --repository-name "$ECR_REPO" --region "$AWS_REGION"
+
+# 2. ECR 로그인
+aws ecr get-login-password --region "$AWS_REGION" | \
+  docker login --username AWS \
+  --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+# 3. 이미지 빌드·태그·푸시
+cd BE-fastapi
+docker build -t "${ECR_REPO}" .
+docker tag "${ECR_REPO}:latest" \
+  "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest"
+docker push \
+  "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest"
+
+# 4. ECS Task Definition 등록 및 서비스 배포
+# → 전체 명령: ECS/001_fargate_hands_on.md 참조
+```
+
+전체 ECS 배포 절차: [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md)
+
+---
+
+### 배포 시나리오 4 — ag-grid-app을 EC2 + Nginx로 배포
+
+**대상**: AG Grid 정적 앱 (`ag-grid-app/`)  
+**인프라**: EC2 인스턴스 + Nginx  
+**포트**: 80
+
+```bash
+# EC2 내부 (Amazon Linux 2023 기준)
+
+# 1. Nginx 설치
+sudo dnf -y install nginx
+sudo systemctl enable --now nginx
+
+# 2. 정적 파일 배포
+sudo mkdir -p /var/www/html/ag-grid-app
+sudo cp -r ~/aws-ec2-alb-lab/ag-grid-app/* /var/www/html/ag-grid-app/
+
+# 3. Nginx 경로 설정 (/ag-grid-app/)
+sudo tee /etc/nginx/conf.d/ag-grid-app.conf <<'NGINX'
+server {
+    listen 80;
+    location /ag-grid-app/ {
+        root /var/www/html;
+        index index.html;
+    }
+}
+NGINX
+
+sudo nginx -t && sudo systemctl reload nginx
+
+# 4. 확인
+curl http://<EC2_PUBLIC_IP>/ag-grid-app/
+```
+
+---
+
+### 배포 시나리오 5 — ALB 경로 기반 멀티 앱 동시 배포
+
+ALB 하나로 여러 웹앱 모듈을 경로에 따라 분리 배포합니다.
+
+```
+http://<ALB_DNS>/        → BE-fastapi (FastAPI Hello World)
+http://<ALB_DNS>/api/*   → AI FastAPI Lab (ai/ai-fastapi-lab)
+http://<ALB_DNS>/grid/*  → AG Grid 정적 앱 (ag-grid-app)
+```
+
+Listener Rule 추가 (경로 기반 라우팅):
+```bash
+# /api/* 경로 → AI FastAPI Target Group
+aws elbv2 create-rule \
+  --listener-arn <LISTENER_ARN> \
+  --priority 10 \
+  --conditions Field=path-pattern,Values='/api/*' \
+  --actions Type=forward,TargetGroupArn=<AI_TG_ARN>
+
+# /grid/* 경로 → AG Grid Target Group
+aws elbv2 create-rule \
+  --listener-arn <LISTENER_ARN> \
+  --priority 20 \
+  --conditions Field=path-pattern,Values='/grid/*' \
+  --actions Type=forward,TargetGroupArn=<GRID_TG_ARN>
+```
+
+ECS + ALB 경로 기반 라우팅 상세: [ECS/002_ecs_alb_lab.md](ECS/002_ecs_alb_lab.md)
+
+---
+
+### 배포 시나리오 6 — GitHub Actions로 ECS 자동화 배포
+
+코드 변경 → ECR 이미지 빌드·푸시 → ECS 서비스 업데이트를 자동화합니다.
+
+**사전 조건**: GitHub OIDC + IAM Role 설정 ([deploy/README.md](deploy/README.md) 참조)
+
+필수 GitHub Secrets / Variables 설정:
+
+| 종류 | 이름 | 값 예시 |
+|---|---|---|
+| Secret | `AWS_ROLE_TO_ASSUME` | `arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>` |
+| Variable | `AWS_REGION` | `ap-northeast-2` |
+| Variable | `ECS_CLUSTER` | `study-fargate-cluster` |
+| Variable | `ECS_SERVICE` | `be-fastapi-service` |
+| Variable | `TASK_FAMILY` | `be-fastapi-task` |
+| Variable | `ECR_REPO` | `be-fastapi-hello` |
+| Variable | `CONTAINER_NAME` | `be-fastapi-hello` |
+
+배포 워크플로우: `.github/workflows/deploy-ecs-aws-cli.yml`
+
+Shell / Ansible 방식을 포함한 3종 비교: [deploy/README.md](deploy/README.md)
+
+---
+
+### 모듈별 배포 방법 요약
+
+| 모듈 | 권장 배포 방법 | 포트 | 참조 문서 |
+|---|---|:---:|---|
+| `BE-fastapi` | ECS Fargate (권장) / EC2 직접 | 8000 | [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md) |
+| `ag-grid-app` | EC2 + Nginx 정적 배포 | 80 | 시나리오 4 참조 |
+| `ai/ai-fastapi-lab` | ECS Fargate / EC2 직접 | 8000 | `ai/ai-fastapi-lab/` |
+| `ai/*` Python 스크립트 | EC2 직접 실행 | - | [ai/ 모듈별 README](ai/) |
+| 멀티 앱 동시 운영 | ALB 경로 기반 라우팅 | 80 | [ECS/002_ecs_alb_lab.md](ECS/002_ecs_alb_lab.md) |
+| CI/CD 자동화 | GitHub Actions + ECS | - | [deploy/README.md](deploy/README.md) |
+
+---
+
 ## 모듈별 상세 안내
 
 ### EC2 — 네트워크·인프라 실습
