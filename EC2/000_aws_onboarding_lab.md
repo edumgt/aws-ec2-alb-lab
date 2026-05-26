@@ -115,3 +115,14 @@ aws ec2 describe-regions --output table
 
 ## YouTube 참고 영상
 - [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=EC2+000+aws+onboarding+lab)
+
+
+---
+
+aws ec2 run-instances \
+    --image-id ami-0765f9741eedf9c7b \
+    --instance-type t2.micro \
+    --key-name kdy-ec2-key \
+    --subnet-id subnet-0e23866dad8a8ebc3
+
+![alt text](image-158.png)
