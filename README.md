@@ -1,3 +1,62 @@
+# 클라우드 인프라 및 아키텍처 핵심 개념 가이드
+
+본 문서는 클라우드 도입, 거버넌스, 시스템 설계 및 관련 비즈니스 생태계에 대한 핵심 개념을 일목요연하게 정리한 가이드입니다.
+
+---
+
+## 1. 클라우드 거버넌스 (Cloud Governance)
+기업이 클라우드 서비스를 도입하고 사용할 때, 비용, 보안, 운영, 준수 관리(Compliance) 등을 통제하고 최적화하기 위해 수립하는 정책, 프로세스, 프레임워크의 집합입니다.
+
+* **핵심 목적:** "자율성을 주되, 통제력은 잃지 않는다" (속도와 통제의 균형)
+* **5대 핵심 요소:**
+    1.  **비용 관리 및 최적화 (FinOps):** 태깅(Tagging)을 통한 비용 추적 및 미사용 자원 자동 종료
+    2.  **보안 및 위험 관리:** 데이터 암호화 표준 정의 및 네트워크 방화벽 규칙 자동화
+    3.  **신원 및 접근 권한 관리 (IAM):** 최소 권한의 원칙(Principle of Least Privilege) 및 MFA 의무화
+    4.  **자원 및 운영 관리:** 인프라를 코드로 관리(IaC)하여 휴먼 에러 방지
+    5.  **규정 준수 (Compliance):** 국내외 법적 규제(ISMS-P, GDPR 등) 준수 및 로깅 체계 구축
+
+---
+
+## 2. 인프라 운영 방식: 온프레미스 vs 클라우드
+| 비교 항목 | 온프레미스 (On-Premise) | 클라우드 (Cloud) |
+| :--- | :--- | :--- |
+| **인프라 위치** | 회사 내 전산실 또는 자체 데이터 센터 | 클라우드 공급사(AWS, Azure 등)의 데이터 센터 |
+| **비용 구조** | **초기 투자 비용(CapEx)** 중심 | **운영 비용(OpEx)** 중심 (종량제) |
+| **준비 기간** | 장비 주문 및 설치까지 수주~수개월 소요 | 클릭 몇 번으로 수분 이내 자원 생성 |
+| **확장성** | 하드웨어 추가 구매 필요 (느림) | 트래픽 변화에 따라 실시간 스케일링 가능 |
+| **유지 보수** | 내부 IT 인력이 직접 관리 및 수리 | 하드웨어 관리는 클라우드 제조사가 전담 |
+
+* **하이브리드 클라우드 (Hybrid Cloud):** 보안이 중요한 핵심 DB는 온프레미스에 두고, 트래픽 변화가 심한 웹 서비스나 AI 연산은 클라우드를 활용하는 혼합형 모델이 최신 트렌드입니다.
+
+---
+
+## 3. 격리 환경: 플레이그라운드 vs 샌드박스
+운영 환경(Production)에 영향을 주지 않도록 격리된 가상 환경을 의미하지만, 목적에 따라 차이가 있습니다.
+
+* **플레이그라운드 (Playground):** 개발자가 신기술을 마음껏 실험하고 학습할 수 있도록 규제를 최소화한 안전한 모래놀이터 (혁신 중심).
+* **샌드박스 (Sandbox):** 외부와의 상호 작용을 철저히 차단하고 악성코드 검사나 위험한 시스템 변형을 사전에 차단하기 위해 통제된 환경 (보안 중심).
+
+---
+
+## 4. IT 아키텍트 직무 분류 (TA / AA)
+아키텍트(Architect)는 비즈니스 요구사항을 바탕으로 기술적 뼈대를 구성하는 설계자입니다.
+
+* **TA (Technical Architect / 테크니컬 아키텍트):**
+    * **역할:** 서버, 네트워크, 스토리지, OS, 미들웨어 등 **하드웨어 및 시스템 인프라** 영역 설계.
+    * **핵심 관심사:** 고가용성(HA), 성능 최적화, 장애 복구(Failover), 보안 구조.
+* **AA (Application Architect / 어플리케이션 아키텍트):**
+    * **역할:** 프로그램 자체의 구조, 공통 프레임워크, 디자인 패턴 등 **소프트웨어 및 소스 코드** 영역 설계.
+    * **핵심 관심사:** 개발 생산성, 유지 보수성, 마이크로서비스 아키텍처(MSA) 설계.
+* **DA (Data Architect / 데이터 아키텍트):** 데이터 모델링, DB 구조 표준화 및 전사 데이터 흐름 설계 담당.
+
+---
+
+## 5. 클라우드 생태계의 주요 제공업체 (ISP, CSP, MSP)
+* **ISP (Internet Service Provider / 인터넷 서비스 제공업체):** 통신망을 구축하여 인터넷 접속을 제공하는 기업 (예: KT, SKB, LGU+).
+* **CSP (Cloud Service Provider / 클라우드 서비스 제공업체):** 대규모 데이터 센터를 기반으로 가상화된 인프라를 빌려주는 원천 기업 (예: AWS, Azure, GCP).
+* **MSP (Managed Service Provider / 클라우드 관리 서비스 제공업체):** 기업이 클라우드를 잘 도입하고 운영할 수 있도록 컨설팅, 이관, 관제를 대행하는 전문 기업 (예: 메가존클라우드, 베스핀글로벌).
+
+
 ## AWS 회원가입·보안 기본 설정부터 EC2 네트워크, ALB, Auto Scaling, ECS Fargate 배포까지  
 ## Lab 스타일로 단계별로 따라갈 수 있도록 정리한 저장소입니다.
 
@@ -121,6 +180,11 @@ aws-ec2-alb-lab/
 │       ├── inventory.ini
 │       └── group_vars/all.yml
 │
+├── .github/workflows/          # GitHub Actions 배포 워크플로우 3종
+│   ├── deploy-dockerhub-ec2.yml    # Docker Hub → EC2 배포
+│   ├── deploy-ecr-ec2.yml          # ECR → EC2 배포
+│   └── deploy-ecs-aws-cli.yml      # ECR → ECS Fargate 배포
+│
 ├── ai/                         # AWS AI 서비스별 Python 실습
 │   ├── bedrock-python-llm/         # Bedrock/Claude 호출 예시
 │   ├── comprehend-python/          # 감성 분석·개체명 인식·언어 감지
@@ -203,7 +267,10 @@ flowchart TD
 ### 1) 최소 학습 동선
 - 인프라 기초부터 시작: [EC2/000_aws_onboarding_lab.md](EC2/000_aws_onboarding_lab.md) → [EC2/001.md](EC2/001.md) → [EC2/002.md](EC2/002.md)
 - ECS까지 확장: [ECS/aws_ecs_fargate_summary.md](ECS/aws_ecs_fargate_summary.md) → [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md)
-- 배포 자동화 연결: [deploy/README.md](deploy/README.md) + `.github/workflows/deploy-ecs-aws-cli.yml`
+- 배포 자동화 연결: [deploy/README.md](deploy/README.md)  
+  - Docker Hub → EC2: [deploy-dockerhub-ec2.yml](.github/workflows/deploy-dockerhub-ec2.yml)  
+  - ECR → EC2: [deploy-ecr-ec2.yml](.github/workflows/deploy-ecr-ec2.yml)  
+  - ECR → ECS Fargate: [deploy-ecs-aws-cli.yml](.github/workflows/deploy-ecs-aws-cli.yml)
 
 ### 2) 로컬에서 바로 실행해볼 샘플
 ```bash
@@ -224,7 +291,9 @@ python3 -m http.server 8080
 | AWS 계정/보안 온보딩 | [EC2/000_aws_onboarding_lab.md](EC2/000_aws_onboarding_lab.md) |
 | ALB/Target Group 구조 이해 | [EC2/002.md](EC2/002.md), [LB/001_alb_settings_lab.md](LB/001_alb_settings_lab.md) |
 | ECS Fargate 배포 실습 | [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md) |
-| GitHub Actions 기반 배포 자동화 | [deploy/README.md](deploy/README.md), [.github/workflows/deploy-ecs-aws-cli.yml](.github/workflows/deploy-ecs-aws-cli.yml) |
+| GitHub Actions 배포 자동화 (Docker Hub→EC2) | [deploy-dockerhub-ec2.yml](.github/workflows/deploy-dockerhub-ec2.yml) |
+| GitHub Actions 배포 자동화 (ECR→EC2) | [deploy-ecr-ec2.yml](.github/workflows/deploy-ecr-ec2.yml) |
+| GitHub Actions 배포 자동화 (ECR→ECS) | [deploy-ecs-aws-cli.yml](.github/workflows/deploy-ecs-aws-cli.yml) |
 
 ---
 
@@ -254,6 +323,39 @@ aws elbv2 describe-load-balancers \
 - [ ] VPC + 퍼블릭 서브넷 2개 이상 생성 완료 ([EC2/001.md](EC2/001.md) 참조)
 - [ ] Internet Gateway + Route Table 설정 완료
 - [ ] ALB + Target Group + Listener 생성 완료 ([EC2/002.md](EC2/002.md) 참조)
+
+---
+
+### EC2에 Docker 설치
+
+Docker 기반 배포(시나리오 2 ~ 2-B)를 진행하려면 EC2 인스턴스에 Docker를 먼저 설치해야 합니다.
+
+```bash
+# EC2 SSH 접속 후 실행 (Amazon Linux 2023 기준)
+ssh -i <KEY_NAME>.pem ec2-user@<EC2_PUBLIC_IP>
+
+# 패키지 업데이트 및 Docker 설치
+sudo dnf -y update
+sudo dnf -y install docker
+
+# Docker 서비스 시작 및 부팅 시 자동 실행 등록
+sudo systemctl enable --now docker
+
+# ec2-user를 docker 그룹에 추가 (sudo 없이 docker 명령 실행)
+sudo usermod -aG docker ec2-user
+newgrp docker        # 또는 SSH 재접속으로 그룹 반영
+
+# ECR 배포 시 필요한 AWS CLI 설치 (Amazon Linux 2023에 기본 포함)
+aws --version        # 없으면: sudo dnf -y install awscli2
+
+# 설치 확인
+docker --version
+docker info
+```
+
+> **ECR pull 시 EC2 IAM 역할 필수**  
+> ECR에서 이미지를 pull하려면 EC2에 `AmazonEC2ContainerRegistryReadOnly` 정책이 포함된 IAM 역할이 연결되어 있어야 합니다.  
+> 연결 방법: EC2 콘솔 → 인스턴스 선택 → Actions → Security → Modify IAM role
 
 ---
 
@@ -296,7 +398,7 @@ curl http://<ALB_DNS_NAME>/health
 ### 배포 시나리오 2 — BE-fastapi를 Docker로 EC2에 배포
 
 **대상**: FastAPI Docker 이미지 (`BE-fastapi/Dockerfile`)  
-**사전 조건**: EC2에 Docker 설치 완료 ([deploy/README.md 4-5절](deploy/README.md) 참조)
+**사전 조건**: EC2에 Docker 설치 완료 (위 [EC2에 Docker 설치](#ec2에-docker-설치) 참조)
 
 ```bash
 # EC2 내부에서 실행
@@ -310,6 +412,127 @@ docker run -d --name fastapi-app --restart unless-stopped -p 8000:8000 be-fastap
 docker ps
 curl http://localhost:8000/health
 ```
+
+---
+
+### 배포 시나리오 2-A — Docker Hub 이미지를 EC2에 배포
+
+**흐름**: 로컬 빌드 → Docker Hub 푸시 → EC2에서 pull·실행  
+**사전 조건**: Docker Hub 계정, EC2에 Docker 설치 완료 ([EC2에 Docker 설치](#ec2에-docker-설치) 참조)
+
+#### 로컬: 이미지 빌드 및 Docker Hub 푸시
+
+```bash
+# Docker Hub 로그인
+docker login
+
+# 이미지 빌드 및 태그 (DOCKERHUB_USERNAME: 본인 Docker Hub ID)
+cd BE-fastapi
+docker build -t <DOCKERHUB_USERNAME>/be-fastapi-hello:latest .
+
+# Docker Hub 푸시
+docker push <DOCKERHUB_USERNAME>/be-fastapi-hello:latest
+```
+
+#### EC2: Docker Hub에서 pull 및 실행
+
+```bash
+# EC2 SSH 접속 후 실행
+IMAGE="<DOCKERHUB_USERNAME>/be-fastapi-hello:latest"
+
+docker pull "$IMAGE"
+docker stop fastapi-app 2>/dev/null || true
+docker rm   fastapi-app 2>/dev/null || true
+docker run -d \
+  --name fastapi-app \
+  --restart unless-stopped \
+  -p 8000:8000 \
+  "$IMAGE"
+
+# 헬스체크
+curl http://localhost:8000/health
+```
+
+GitHub Actions 자동화: [`.github/workflows/deploy-dockerhub-ec2.yml`](.github/workflows/deploy-dockerhub-ec2.yml)
+
+필수 GitHub Secrets / Variables:
+
+| 종류 | 이름 | 값 예시 |
+|---|---|---|
+| Secret | `DOCKERHUB_TOKEN` | Docker Hub Access Token |
+| Secret | `EC2_HOST` | EC2 퍼블릭 IP |
+| Secret | `EC2_USER` | `ec2-user` (AL2023) 또는 `ubuntu` |
+| Secret | `EC2_SSH_KEY` | `.pem` 키 파일 전체 내용 |
+| Variable | `DOCKERHUB_USERNAME` | Docker Hub 사용자 ID |
+
+---
+
+### 배포 시나리오 2-B — ECR 이미지를 EC2에 배포
+
+**흐름**: 로컬 빌드 → ECR 푸시 → EC2에서 ECR 로그인 → pull·실행  
+**사전 조건**: ECR 리포지토리, EC2에 Docker + AWS CLI 설치, EC2 IAM 역할(`AmazonEC2ContainerRegistryReadOnly`)
+
+#### 로컬: ECR에 이미지 빌드·푸시
+
+```bash
+export AWS_REGION="ap-northeast-2"
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ECR_REPO="be-fastapi-hello"
+export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+# ECR 리포지토리 생성 (최초 1회)
+aws ecr create-repository --repository-name "$ECR_REPO" --region "$AWS_REGION" 2>/dev/null || true
+
+# ECR 로그인
+aws ecr get-login-password --region "$AWS_REGION" | \
+  docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+# 이미지 빌드·태그·푸시
+cd BE-fastapi
+docker build -t "$ECR_REGISTRY/$ECR_REPO:latest" .
+docker push "$ECR_REGISTRY/$ECR_REPO:latest"
+```
+
+#### EC2: ECR에서 pull 및 실행
+
+```bash
+# EC2 SSH 접속 후 실행
+# (EC2에 AmazonEC2ContainerRegistryReadOnly IAM 역할 연결 필요)
+AWS_REGION="ap-northeast-2"
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ECR_REPO="be-fastapi-hello"
+ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+IMAGE="$ECR_REGISTRY/$ECR_REPO:latest"
+
+# ECR 로그인 (EC2 IAM 역할 기반)
+aws ecr get-login-password --region "$AWS_REGION" | \
+  docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+docker pull "$IMAGE"
+docker stop fastapi-app 2>/dev/null || true
+docker rm   fastapi-app 2>/dev/null || true
+docker run -d \
+  --name fastapi-app \
+  --restart unless-stopped \
+  -p 8000:8000 \
+  "$IMAGE"
+
+# 헬스체크
+curl http://localhost:8000/health
+```
+
+GitHub Actions 자동화: [`.github/workflows/deploy-ecr-ec2.yml`](.github/workflows/deploy-ecr-ec2.yml)
+
+필수 GitHub Secrets / Variables:
+
+| 종류 | 이름 | 값 예시 |
+|---|---|---|
+| Secret | `AWS_ROLE_TO_ASSUME` | `arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>` |
+| Secret | `EC2_HOST` | EC2 퍼블릭 IP |
+| Secret | `EC2_USER` | `ec2-user` (AL2023) 또는 `ubuntu` |
+| Secret | `EC2_SSH_KEY` | `.pem` 키 파일 전체 내용 |
+| Variable | `AWS_REGION` | `ap-northeast-2` |
+| Variable | `ECR_REPO` | `be-fastapi-hello` |
 
 ---
 
@@ -414,13 +637,48 @@ ECS + ALB 경로 기반 라우팅 상세: [ECS/002_ecs_alb_lab.md](ECS/002_ecs_a
 
 ---
 
-### 배포 시나리오 6 — GitHub Actions로 ECS 자동화 배포
+### 배포 시나리오 6 — GitHub Actions로 자동화 배포 (3종)
 
-코드 변경 → ECR 이미지 빌드·푸시 → ECS 서비스 업데이트를 자동화합니다.
+`BE-fastapi/` 코드가 `main` 브랜치에 푸시되면 자동으로 빌드·배포합니다.  
+배포 대상에 따라 아래 세 가지 워크플로우 중 하나를 선택합니다.
 
-**사전 조건**: GitHub OIDC + IAM Role 설정 ([deploy/README.md](deploy/README.md) 참조)
+| 워크플로우 | 배포 대상 | 파일 |
+|---|---|---|
+| Docker Hub → EC2 | Docker Hub 이미지를 EC2에 직접 실행 | [deploy-dockerhub-ec2.yml](.github/workflows/deploy-dockerhub-ec2.yml) |
+| ECR → EC2 | ECR 이미지를 EC2에 직접 실행 | [deploy-ecr-ec2.yml](.github/workflows/deploy-ecr-ec2.yml) |
+| ECR → ECS Fargate | ECR 이미지를 ECS Fargate 서비스에 배포 | [deploy-ecs-aws-cli.yml](.github/workflows/deploy-ecs-aws-cli.yml) |
 
-필수 GitHub Secrets / Variables 설정:
+#### 공통 사전 조건: GitHub OIDC + IAM Role 설정
+
+OIDC 기반 인증을 사용하면 장기 Access Key 없이 GitHub Actions에서 AWS 리소스에 접근할 수 있습니다.  
+설정 방법: [deploy/README.md 4-3절](deploy/README.md) 참조
+
+#### 워크플로우별 필수 GitHub Secrets / Variables
+
+**① Docker Hub → EC2** (`deploy-dockerhub-ec2.yml`)
+
+| 종류 | 이름 | 값 예시 |
+|---|---|---|
+| Secret | `DOCKERHUB_TOKEN` | Docker Hub Access Token |
+| Secret | `EC2_HOST` | EC2 퍼블릭 IP |
+| Secret | `EC2_USER` | `ec2-user` |
+| Secret | `EC2_SSH_KEY` | `.pem` 키 파일 전체 내용 |
+| Variable | `DOCKERHUB_USERNAME` | Docker Hub 사용자 ID |
+
+**② ECR → EC2** (`deploy-ecr-ec2.yml`)
+
+| 종류 | 이름 | 값 예시 |
+|---|---|---|
+| Secret | `AWS_ROLE_TO_ASSUME` | `arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>` |
+| Secret | `EC2_HOST` | EC2 퍼블릭 IP |
+| Secret | `EC2_USER` | `ec2-user` |
+| Secret | `EC2_SSH_KEY` | `.pem` 키 파일 전체 내용 |
+| Variable | `AWS_REGION` | `ap-northeast-2` |
+| Variable | `ECR_REPO` | `be-fastapi-hello` |
+
+> EC2에 `AmazonEC2ContainerRegistryReadOnly` IAM 역할이 연결되어 있어야 합니다.
+
+**③ ECR → ECS Fargate** (`deploy-ecs-aws-cli.yml`)
 
 | 종류 | 이름 | 값 예시 |
 |---|---|---|
@@ -431,8 +689,9 @@ ECS + ALB 경로 기반 라우팅 상세: [ECS/002_ecs_alb_lab.md](ECS/002_ecs_a
 | Variable | `TASK_FAMILY` | `be-fastapi-task` |
 | Variable | `ECR_REPO` | `be-fastapi-hello` |
 | Variable | `CONTAINER_NAME` | `be-fastapi-hello` |
-
-배포 워크플로우: `.github/workflows/deploy-ecs-aws-cli.yml`
+| Variable (선택) | `CONTAINER_PORT` | `8000` |
+| Variable (선택) | `CPU` | `256` |
+| Variable (선택) | `MEMORY` | `512` |
 
 Shell / Ansible 방식을 포함한 3종 비교: [deploy/README.md](deploy/README.md)
 
@@ -442,12 +701,14 @@ Shell / Ansible 방식을 포함한 3종 비교: [deploy/README.md](deploy/READM
 
 | 모듈 | 권장 배포 방법 | 포트 | 참조 문서 |
 |---|---|:---:|---|
-| `BE-fastapi` | ECS Fargate (권장) / EC2 직접 | 8000 | [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md) |
+| `BE-fastapi` | ECS Fargate (권장) / ECR→EC2 / Docker Hub→EC2 | 8000 | [ECS/001_fargate_hands_on.md](ECS/001_fargate_hands_on.md) |
 | `ag-grid-app` | EC2 + Nginx 정적 배포 | 80 | 시나리오 4 참조 |
 | `ai/ai-fastapi-lab` | ECS Fargate / EC2 직접 | 8000 | `ai/ai-fastapi-lab/` |
 | `ai/*` Python 스크립트 | EC2 직접 실행 | - | [ai/ 모듈별 README](ai/) |
 | 멀티 앱 동시 운영 | ALB 경로 기반 라우팅 | 80 | [ECS/002_ecs_alb_lab.md](ECS/002_ecs_alb_lab.md) |
-| CI/CD 자동화 | GitHub Actions + ECS | - | [deploy/README.md](deploy/README.md) |
+| CI/CD — Docker Hub→EC2 | GitHub Actions + Docker Hub | - | [deploy-dockerhub-ec2.yml](.github/workflows/deploy-dockerhub-ec2.yml) |
+| CI/CD — ECR→EC2 | GitHub Actions + ECR + SSH | - | [deploy-ecr-ec2.yml](.github/workflows/deploy-ecr-ec2.yml) |
+| CI/CD — ECR→ECS | GitHub Actions + ECR + ECS | - | [deploy-ecs-aws-cli.yml](.github/workflows/deploy-ecs-aws-cli.yml) |
 
 ---
 

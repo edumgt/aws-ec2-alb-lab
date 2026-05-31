@@ -1,0 +1,68 @@
+name: Docker Hub → EC2 배포
+
+# BE-fastapi 코드 변경 시 자동 트리거
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'BE-fastapi/**'
+      - '.github/workflows/deploy-dockerhub-ec2.yml'
+  workflow_dispatch:
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      # ── Docker Hub 로그인 ──────────────────────────────────────────
+      # Secrets: DOCKERHUB_TOKEN
+      # Variables: DOCKERHUB_USERNAME
+      - name: Docker Hub 로그인
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ── 이미지 빌드 및 Docker Hub 푸시 ────────────────────────────
+      - name: 이미지 빌드 및 푸시
+        uses: docker/build-push-action@v5
+        with:
+          context: ./BE-fastapi
+          push: true
+          tags: |
+            ${{ vars.DOCKERHUB_USERNAME }}/be-fastapi-hello:latest
+            ${{ vars.DOCKERHUB_USERNAME }}/be-fastapi-hello:${{ github.sha }}
+
+      # ── EC2 SSH 접속 → 컨테이너 교체 배포 ────────────────────────
+      # Secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY
+      # EC2 보안그룹에 GitHub Actions IP 범위(443/22)가 허용되어 있어야 합니다.
+      - name: EC2 배포 (SSH)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            IMAGE="${{ vars.DOCKERHUB_USERNAME }}/be-fastapi-hello:latest"
+
+            docker pull "$IMAGE"
+
+            docker stop fastapi-app 2>/dev/null || true
+            docker rm   fastapi-app 2>/dev/null || true
+
+            docker run -d \
+              --name fastapi-app \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              "$IMAGE"
+
+            # 오래된 이미지 정리
+            docker image prune -f
+
+            # 헬스체크
+            sleep 3
+            curl -sf http://localhost:8000/health || \
+              (echo "헬스체크 실패 — 컨테이너 로그:"; docker logs fastapi-app --tail 30; exit 1)

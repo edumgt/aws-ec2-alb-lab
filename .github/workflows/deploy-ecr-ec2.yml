@@ -1,0 +1,107 @@
+name: ECR → EC2 배포
+
+# BE-fastapi 코드 변경 시 자동 트리거
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'BE-fastapi/**'
+      - '.github/workflows/deploy-ecr-ec2.yml'
+  workflow_dispatch:
+
+# OIDC 토큰 발급 권한
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      # ── AWS 자격 증명 (OIDC) ───────────────────────────────────────
+      # Secrets: AWS_ROLE_TO_ASSUME
+      # Variables: AWS_REGION
+      # 장기 Access Key 없이 OIDC + IAM Role로 인증합니다.
+      - name: AWS 자격 증명 설정 (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # ── ECR 로그인 ────────────────────────────────────────────────
+      - name: ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── ECR 리포지토리 확인·자동 생성 ────────────────────────────
+      # Variables: ECR_REPO
+      - name: ECR 리포지토리 확인·생성
+        env:
+          ECR_REPO: ${{ vars.ECR_REPO }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          aws ecr describe-repositories \
+            --repository-names "$ECR_REPO" \
+            --region "$AWS_REGION" >/dev/null 2>&1 || \
+          aws ecr create-repository \
+            --repository-name "$ECR_REPO" \
+            --image-scanning-configuration scanOnPush=true \
+            --region "$AWS_REGION" >/dev/null
+
+      # ── 이미지 빌드 및 ECR 푸시 ──────────────────────────────────
+      - name: 이미지 빌드 및 ECR 푸시
+        id: build-push
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPO: ${{ vars.ECR_REPO }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPO"
+          docker build -t "$IMAGE_URI:latest" \
+                       -t "$IMAGE_URI:$IMAGE_TAG" \
+                       ./BE-fastapi
+          docker push "$IMAGE_URI:latest"
+          docker push "$IMAGE_URI:$IMAGE_TAG"
+          echo "image_uri=$IMAGE_URI:latest" >> "$GITHUB_OUTPUT"
+          echo "ecr_registry=$ECR_REGISTRY"  >> "$GITHUB_OUTPUT"
+
+      # ── EC2 SSH 접속 → ECR pull → 컨테이너 교체 배포 ─────────────
+      # Secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY
+      # EC2에 AmazonEC2ContainerRegistryReadOnly IAM 역할이 연결되어 있어야 합니다.
+      - name: EC2 배포 (SSH)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            IMAGE_URI="${{ steps.build-push.outputs.image_uri }}"
+            ECR_REGISTRY="${{ steps.build-push.outputs.ecr_registry }}"
+            AWS_REGION="${{ vars.AWS_REGION }}"
+
+            # EC2 IAM 역할(AmazonEC2ContainerRegistryReadOnly)로 ECR 로그인
+            aws ecr get-login-password --region "$AWS_REGION" | \
+              docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+            docker pull "$IMAGE_URI"
+
+            docker stop fastapi-app 2>/dev/null || true
+            docker rm   fastapi-app 2>/dev/null || true
+
+            docker run -d \
+              --name fastapi-app \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              "$IMAGE_URI"
+
+            # 오래된 이미지 정리
+            docker image prune -f
+
+            # 헬스체크
+            sleep 3
+            curl -sf http://localhost:8000/health || \
+              (echo "헬스체크 실패 — 컨테이너 로그:"; docker logs fastapi-app --tail 30; exit 1)

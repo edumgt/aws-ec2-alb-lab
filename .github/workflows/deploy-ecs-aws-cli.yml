@@ -1,0 +1,139 @@
+name: ECS Fargate 배포 (AWS CLI)
+
+# BE-fastapi 코드 변경 시 자동 트리거
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'BE-fastapi/**'
+      - '.github/workflows/deploy-ecs-aws-cli.yml'
+  workflow_dispatch:
+
+# OIDC 토큰 발급 권한
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION:     ${{ vars.AWS_REGION }}
+  ECS_CLUSTER:    ${{ vars.ECS_CLUSTER }}
+  ECS_SERVICE:    ${{ vars.ECS_SERVICE }}
+  TASK_FAMILY:    ${{ vars.TASK_FAMILY }}
+  ECR_REPO:       ${{ vars.ECR_REPO }}
+  CONTAINER_NAME: ${{ vars.CONTAINER_NAME }}
+  CONTAINER_PORT: ${{ vars.CONTAINER_PORT || '8000' }}
+  CPU:            ${{ vars.CPU    || '256' }}
+  MEMORY:         ${{ vars.MEMORY || '512' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      # ── AWS 자격 증명 (OIDC) ───────────────────────────────────────
+      # Secrets: AWS_ROLE_TO_ASSUME
+      # Variables: AWS_REGION
+      - name: AWS 자격 증명 설정 (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ── ECR 로그인 ────────────────────────────────────────────────
+      - name: ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── ECR 리포지토리 확인·자동 생성 ────────────────────────────
+      - name: ECR 리포지토리 확인·생성
+        run: |
+          aws ecr describe-repositories \
+            --repository-names "$ECR_REPO" \
+            --region "$AWS_REGION" >/dev/null 2>&1 || \
+          aws ecr create-repository \
+            --repository-name "$ECR_REPO" \
+            --image-scanning-configuration scanOnPush=true \
+            --region "$AWS_REGION" >/dev/null
+
+      # ── 이미지 빌드 및 ECR 푸시 ──────────────────────────────────
+      - name: 이미지 빌드 및 ECR 푸시
+        id: build-push
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:    ${{ github.sha }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG"
+          docker build -t "$IMAGE_URI" ./BE-fastapi
+          docker push "$IMAGE_URI"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      # ── Task Definition 등록 ──────────────────────────────────────
+      - name: Task Definition 등록
+        id: task-def
+        env:
+          IMAGE_URI: ${{ steps.build-push.outputs.image_uri }}
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          EXEC_ROLE="arn:aws:iam::${ACCOUNT_ID}:role/ecsTaskExecutionRole"
+
+          TASK_DEF_JSON=$(mktemp -t taskdef-XXXXXX.json)
+          cat > "$TASK_DEF_JSON" <<JSON
+          {
+            "family": "${TASK_FAMILY}",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "${CPU}",
+            "memory": "${MEMORY}",
+            "executionRoleArn": "${EXEC_ROLE}",
+            "containerDefinitions": [
+              {
+                "name": "${CONTAINER_NAME}",
+                "image": "${IMAGE_URI}",
+                "essential": true,
+                "portMappings": [
+                  { "containerPort": ${CONTAINER_PORT}, "protocol": "tcp" }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/${ECS_SERVICE}",
+                    "awslogs-region": "${AWS_REGION}",
+                    "awslogs-stream-prefix": "ecs",
+                    "awslogs-create-group": "true"
+                  }
+                }
+              }
+            ]
+          }
+          JSON
+
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --region "$AWS_REGION" \
+            --cli-input-json "file://$TASK_DEF_JSON" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "task_def_arn=$TASK_DEF_ARN" >> "$GITHUB_OUTPUT"
+          echo "등록된 Task Definition: $TASK_DEF_ARN"
+
+      # ── ECS 서비스 업데이트 ───────────────────────────────────────
+      - name: ECS 서비스 업데이트
+        run: |
+          aws ecs update-service \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "${{ steps.task-def.outputs.task_def_arn }}" \
+            --force-new-deployment >/dev/null
+
+      # ── 배포 안정화 대기 ──────────────────────────────────────────
+      - name: 배포 안정화 대기 (services-stable)
+        run: |
+          aws ecs wait services-stable \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
+          echo "배포 완료: ${{ steps.build-push.outputs.image_uri }}"
