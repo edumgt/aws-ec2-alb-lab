@@ -119,9 +119,9 @@ aws ec2 describe-regions --output table
 ---
 
 aws ec2 run-instances \
-    --image-id ami-0765f9741eedf9c7b \
-    --instance-type t2.micro \
+    --image-id ami-0aef7d1237f8a3805 \
+    --instance-type t3.micro \
     --key-name kdy-test \
-    --subnet-id subnet-0e23866dad8a8ebc3
+    --subnet-id subnet-07a69d323bc233f7d
 
 ![alt text](image-158.png)
