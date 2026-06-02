@@ -1,31 +1,52 @@
-name: SSH 접속 테스트
+name: EC2 Docker Pull & Run
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+env:
+  BE_IMAGE: edumgt/be-fastapi-hello:e4644bd1cb5d2bf89960e48686a136f1141d07f1
+  FE_IMAGE: edumgt/fe-ag-grid:e4644bd1cb5d2bf89960e48686a136f1141d07f1
+
 jobs:
-  test-ssh:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v4
-
-      - name: EC2 SSH 접속 테스트
+      - name: EC2 SSH → Docker Pull & Run
         uses: appleboy/ssh-action@v1
         with:
           host: 43.203.255.251
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            BE_IMAGE="edumgt/be-fastapi-hello:e4644bd1cb5d2bf89960e48686a136f1141d07f1"
+            FE_IMAGE="edumgt/fe-ag-grid:e4644bd1cb5d2bf89960e48686a136f1141d07f1"
+
+            # ── Pull ───────────────────────────────────────────────────
+            docker pull "$BE_IMAGE"
+            docker pull "$FE_IMAGE"
+
+            # ── BE 실행 ────────────────────────────────────────────────
+            docker stop fastapi-app 2>/dev/null || true
+            docker rm   fastapi-app 2>/dev/null || true
+            docker run -d \
+              --name fastapi-app \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              "$BE_IMAGE"
+
+            # ── FE 실행 ────────────────────────────────────────────────
+            docker stop ag-grid-app 2>/dev/null || true
+            docker rm   ag-grid-app 2>/dev/null || true
+            docker run -d \
+              --name ag-grid-app \
+              --restart unless-stopped \
+              -p 80:80 \
+              "$FE_IMAGE"
+
+            # ── 확인 ──────────────────────────────────────────────────
             echo "=============================="
-            echo " SSH 접속 성공!"
-            echo " 호스트: $(hostname)"
-            echo " 날짜:   $(date)"
-            echo " 커밋:   ${{ github.sha }}"
-            echo " 브랜치: ${{ github.ref_name }}"
-            echo " 작성자: ${{ github.actor }}"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
             echo "=============================="
-            uptime
