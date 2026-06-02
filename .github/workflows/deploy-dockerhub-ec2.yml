@@ -1,6 +1,6 @@
 name: Docker Hub → EC2 배포
 
-# BE-fastapi 코드 변경 시 자동 트리거
+
 on:
   push:
     branches: [main]
