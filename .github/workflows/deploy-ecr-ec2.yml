@@ -42,25 +42,15 @@ jobs:
 
       # ── BE 이미지 빌드 및 ECR 푸시 ───────────────────────────────
       - name: BE 이미지 빌드 및 ECR 푸시
-        id: build-be
         run: |
-          docker build -t "$BE_IMAGE:latest" \
-                       -t "$BE_IMAGE:${{ github.sha }}" \
-                       ./BE-fastapi
+          docker build -t "$BE_IMAGE:latest" ./BE-fastapi
           docker push "$BE_IMAGE:latest"
-          docker push "$BE_IMAGE:${{ github.sha }}"
-          echo "be_image=$BE_IMAGE:latest" >> "$GITHUB_OUTPUT"
 
       # ── FE 이미지 빌드 및 ECR 푸시 ───────────────────────────────
       - name: FE 이미지 빌드 및 ECR 푸시
-        id: build-fe
         run: |
-          docker build -t "$FE_IMAGE:latest" \
-                       -t "$FE_IMAGE:${{ github.sha }}" \
-                       ./ag-grid-app
+          docker build -t "$FE_IMAGE:latest" ./ag-grid-app
           docker push "$FE_IMAGE:latest"
-          docker push "$FE_IMAGE:${{ github.sha }}"
-          echo "fe_image=$FE_IMAGE:latest" >> "$GITHUB_OUTPUT"
 
       # ── EC2 SSH 접속 → ECR pull → 컨테이너 교체 배포 ─────────────
       # Secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY
@@ -72,8 +62,8 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            BE_IMAGE="${{ steps.build-be.outputs.be_image }}"
-            FE_IMAGE="${{ steps.build-fe.outputs.fe_image }}"
+            BE_IMAGE="086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/be-test:latest"
+            FE_IMAGE="086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/fe-test:latest"
 
             aws ecr get-login-password --region ap-northeast-2 | \
               docker login --username AWS --password-stdin 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com

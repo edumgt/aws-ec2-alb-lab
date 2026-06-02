@@ -1,4 +1,4 @@
-name: Docker Hub → EC2 배포
+name: ECR → EC2 배포 (Docker Hub 대체)
 
 # BE-fastapi 또는 ag-grid-app 코드 변경 시 자동 트리거
 on:
@@ -10,54 +10,59 @@ on:
       - '.github/workflows/deploy-dockerhub-ec2.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+env:
+  AWS_REGION:   ap-northeast-2
+  ECR_REGISTRY: 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com
+  BE_IMAGE:     086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/be-test
+  FE_IMAGE:     086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/fe-test
+
 jobs:
-  # ── BE 이미지 빌드 및 Docker Hub 푸시 ──────────────────────────────
   build-be:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      - name: Docker Hub 로그인
-        uses: docker/login-action@v3
+      - name: AWS 자격 증명 설정
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: BE 이미지 빌드 및 푸시
-        uses: docker/build-push-action@v5
-        with:
-          context: ./BE-fastapi
-          push: true
-          tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/be-fastapi-hello:latest
-            ${{ vars.DOCKERHUB_USERNAME }}/be-fastapi-hello:${{ github.sha }}
+      - name: ECR 로그인
+        uses: aws-actions/amazon-ecr-login@v2
 
-  # ── FE 이미지 빌드 및 Docker Hub 푸시 ──────────────────────────────
+      - name: BE 이미지 빌드 및 ECR 푸시
+        run: |
+          docker build -t "$BE_IMAGE:latest" ./BE-fastapi
+          docker push "$BE_IMAGE:latest"
+
   build-fe:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      - name: Docker Hub 로그인
-        uses: docker/login-action@v3
+      - name: AWS 자격 증명 설정
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: FE 이미지 빌드 및 푸시
-        uses: docker/build-push-action@v5
-        with:
-          context: ./ag-grid-app
-          push: true
-          tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/fe-ag-grid:latest
-            ${{ vars.DOCKERHUB_USERNAME }}/fe-ag-grid:${{ github.sha }}
+      - name: ECR 로그인
+        uses: aws-actions/amazon-ecr-login@v2
 
-  # ── BE EC2 배포 (Docker Hub pull → 컨테이너 교체) ──────────────────
-  # Secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY, DOCKERHUB_TOKEN
-  # Variables: DOCKERHUB_USERNAME
+      - name: FE 이미지 빌드 및 ECR 푸시
+        run: |
+          docker build -t "$FE_IMAGE:latest" ./ag-grid-app
+          docker push "$FE_IMAGE:latest"
+
+  # ── BE EC2 배포 ────────────────────────────────────────────────────
   deploy-be:
     runs-on: ubuntu-latest
     needs: build-be
@@ -69,21 +74,18 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            IMAGE="${{ vars.DOCKERHUB_USERNAME }}/be-fastapi-hello:latest"
+            aws ecr get-login-password --region ap-northeast-2 | \
+              docker login --username AWS --password-stdin 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com
 
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
-              docker login -u "${{ vars.DOCKERHUB_USERNAME }}" --password-stdin
-
-            docker pull "$IMAGE"
+            docker pull 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/be-test:latest
 
             docker stop fastapi-app 2>/dev/null || true
             docker rm   fastapi-app 2>/dev/null || true
-
             docker run -d \
               --name fastapi-app \
               --restart unless-stopped \
               -p 8000:8000 \
-              "$IMAGE"
+              086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/be-test:latest
 
             docker image prune -f
 
@@ -91,7 +93,7 @@ jobs:
             curl -sf http://localhost:8000/health || \
               (echo "BE 헬스체크 실패"; docker logs fastapi-app --tail 30; exit 1)
 
-  # ── FE EC2 배포 (Docker Hub pull → 컨테이너 교체) ──────────────────
+  # ── FE EC2 배포 ────────────────────────────────────────────────────
   deploy-fe:
     runs-on: ubuntu-latest
     needs: build-fe
@@ -103,21 +105,18 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            IMAGE="${{ vars.DOCKERHUB_USERNAME }}/fe-ag-grid:latest"
+            aws ecr get-login-password --region ap-northeast-2 | \
+              docker login --username AWS --password-stdin 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com
 
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
-              docker login -u "${{ vars.DOCKERHUB_USERNAME }}" --password-stdin
-
-            docker pull "$IMAGE"
+            docker pull 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/fe-test:latest
 
             docker stop fe-ag-grid 2>/dev/null || true
             docker rm   fe-ag-grid 2>/dev/null || true
-
             docker run -d \
               --name fe-ag-grid \
               --restart unless-stopped \
               -p 80:80 \
-              "$IMAGE"
+              086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/fe-test:latest
 
             docker image prune -f
 
