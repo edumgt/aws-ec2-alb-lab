@@ -1,6 +1,6 @@
 name: EC2 Docker Pull & Run
 
-# deploy-ecr-ec2.yml 성공 후 자동 실행
+
 on:
   workflow_run:
     workflows: ["ECR → EC2 배포"]
