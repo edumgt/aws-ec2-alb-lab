@@ -1,0 +1,31 @@
+name: SSH 접속 테스트
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-ssh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: EC2 SSH 접속 테스트
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 43.203.255.251
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "=============================="
+            echo " SSH 접속 성공!"
+            echo " 호스트: $(hostname)"
+            echo " 날짜:   $(date)"
+            echo " 커밋:   ${{ github.sha }}"
+            echo " 브랜치: ${{ github.ref_name }}"
+            echo " 작성자: ${{ github.actor }}"
+            echo "=============================="
+            uptime
