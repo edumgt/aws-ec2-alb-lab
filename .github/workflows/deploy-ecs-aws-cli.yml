@@ -1,12 +1,7 @@
 name: ECS Fargate 배포 (AWS CLI)
 
-# BE-fastapi 코드 변경 시 자동 트리거
+# 수동 실행 전용 (AWS ECR + ECS + OIDC 설정 완료 후 사용)
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'BE-fastapi/**'
-      - '.github/workflows/deploy-ecs-aws-cli.yml'
   workflow_dispatch:
 
 # OIDC 토큰 발급 권한

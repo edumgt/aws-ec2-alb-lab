@@ -1,12 +1,7 @@
 name: ECR → EC2 배포
 
-# BE-fastapi 코드 변경 시 자동 트리거
+# 수동 실행 전용 (AWS ECR + OIDC 설정 완료 후 사용)
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'BE-fastapi/**'
-      - '.github/workflows/deploy-ecr-ec2.yml'
   workflow_dispatch:
 
 # OIDC 토큰 발급 권한

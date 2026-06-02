@@ -55,4 +55,72 @@ jobs:
             ${{ vars.DOCKERHUB_USERNAME }}/fe-ag-grid:latest
             ${{ vars.DOCKERHUB_USERNAME }}/fe-ag-grid:${{ github.sha }}
 
-  
+  # ── BE EC2 배포 (Docker Hub pull → 컨테이너 교체) ──────────────────
+  # Secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY, DOCKERHUB_TOKEN
+  # Variables: DOCKERHUB_USERNAME
+  deploy-be:
+    runs-on: ubuntu-latest
+    needs: build-be
+    steps:
+      - name: EC2 BE 배포 (SSH)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            IMAGE="${{ vars.DOCKERHUB_USERNAME }}/be-fastapi-hello:latest"
+
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
+              docker login -u "${{ vars.DOCKERHUB_USERNAME }}" --password-stdin
+
+            docker pull "$IMAGE"
+
+            docker stop fastapi-app 2>/dev/null || true
+            docker rm   fastapi-app 2>/dev/null || true
+
+            docker run -d \
+              --name fastapi-app \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              "$IMAGE"
+
+            docker image prune -f
+
+            sleep 3
+            curl -sf http://localhost:8000/health || \
+              (echo "BE 헬스체크 실패"; docker logs fastapi-app --tail 30; exit 1)
+
+  # ── FE EC2 배포 (Docker Hub pull → 컨테이너 교체) ──────────────────
+  deploy-fe:
+    runs-on: ubuntu-latest
+    needs: build-fe
+    steps:
+      - name: EC2 FE 배포 (SSH)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            IMAGE="${{ vars.DOCKERHUB_USERNAME }}/fe-ag-grid:latest"
+
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
+              docker login -u "${{ vars.DOCKERHUB_USERNAME }}" --password-stdin
+
+            docker pull "$IMAGE"
+
+            docker stop fe-ag-grid 2>/dev/null || true
+            docker rm   fe-ag-grid 2>/dev/null || true
+
+            docker run -d \
+              --name fe-ag-grid \
+              --restart unless-stopped \
+              -p 80:80 \
+              "$IMAGE"
+
+            docker image prune -f
+
+            sleep 2
+            curl -sf http://localhost:80/ || \
+              (echo "FE 헬스체크 실패"; docker logs fe-ag-grid --tail 30; exit 1)
