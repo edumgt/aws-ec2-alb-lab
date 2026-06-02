@@ -10,9 +10,7 @@ on:
       - '.github/workflows/deploy-ecr-ec2.yml'
   workflow_dispatch:
 
-# OIDC 토큰 발급 권한
 permissions:
-  id-token: write
   contents: read
 
 env:
@@ -29,12 +27,13 @@ jobs:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      # ── AWS 자격 증명 (OIDC) ───────────────────────────────────────
-      # Secrets: AWS_ROLE_TO_ASSUME
-      - name: AWS 자격 증명 설정 (OIDC)
+      # ── AWS 자격 증명 (Access Key) ────────────────────────────────
+      # Secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+      - name: AWS 자격 증명 설정
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       # ── ECR 로그인 ────────────────────────────────────────────────
