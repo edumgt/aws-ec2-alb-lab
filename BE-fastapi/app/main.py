@@ -1,22 +1,78 @@
-# FastAPI 프레임워크에서 FastAPI 클래스를 임포트합니다
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
-# FastAPI 애플리케이션 인스턴스를 생성합니다
-# title: Swagger UI / OpenAPI 문서에 표시될 서비스 이름
-# version: API 버전 정보 (OpenAPI 스펙에 포함됨)
-app = FastAPI(title="BE FastAPI Hello", version="1.0.0")
+app = FastAPI(
+    title="BE FastAPI Hello",
+    version="1.0.0",
+    description="""
+## BE FastAPI Hello API
+
+EC2 + Docker 배포 실습용 FastAPI 서비스입니다.
+
+### 엔드포인트
+- **GET /** — 헬로 메시지
+- **GET /health** — ALB 헬스체크
+- **GET /items/{item_id}** — 아이템 조회
+- **POST /items** — 아이템 생성
+""",
+    contact={"name": "kdy", "email": "kimdypm@gmail.com"},
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 
-# HTTP GET 메서드로 루트 경로("/")를 처리하는 엔드포인트를 등록합니다
-@app.get("/")
-def hello_world() -> dict[str, str]:  # 반환 타입: 문자열 키-값 딕셔너리 (JSON으로 자동 직렬화)
-    # "hello world" 메시지를 담은 JSON 응답을 반환합니다
+# ── Response / Request 모델 ────────────────────────────────────────────
+
+class MessageResponse(BaseModel):
+    message: str = Field(..., example="hello world")
+
+
+class HealthResponse(BaseModel):
+    status: str = Field(..., example="ok")
+
+
+class Item(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100, example="노트북")
+    price: float = Field(..., gt=0, example=1_200_000)
+    in_stock: bool = Field(default=True, example=True)
+
+
+class ItemResponse(Item):
+    id: int = Field(..., example=1)
+
+
+# ── 엔드포인트 ────────────────────────────────────────────────────────
+
+@app.get("/", response_model=MessageResponse, tags=["General"])
+def hello_world():
+    """서비스 기본 응답"""
     return {"message": "hello world"}
 
 
-# HTTP GET 메서드로 헬스체크 경로("/health")를 처리하는 엔드포인트를 등록합니다
-# ALB(Application Load Balancer) 또는 컨테이너 오케스트레이터(ECS, K8s)의 헬스체크에 활용됩니다
-@app.get("/health")
-def health_check() -> dict[str, str]:  # 반환 타입: 문자열 키-값 딕셔너리 (JSON으로 자동 직렬화)
-    # 서비스가 정상 동작 중임을 나타내는 "ok" 상태값을 반환합니다
+@app.get("/health", response_model=HealthResponse, tags=["General"])
+def health_check():
+    """ALB / 컨테이너 헬스체크용 엔드포인트"""
     return {"status": "ok"}
+
+
+_items: dict[int, dict] = {
+    1: {"id": 1, "name": "노트북", "price": 1_200_000, "in_stock": True},
+    2: {"id": 2, "name": "마우스", "price": 35_000,   "in_stock": False},
+}
+
+
+@app.get("/items/{item_id}", response_model=ItemResponse, tags=["Items"])
+def get_item(item_id: int):
+    """ID로 아이템 조회"""
+    if item_id not in _items:
+        return JSONResponse(status_code=404, content={"detail": "Item not found"})
+    return _items[item_id]
+
+
+@app.post("/items", response_model=ItemResponse, status_code=201, tags=["Items"])
+def create_item(item: Item):
+    """새 아이템 생성"""
+    new_id = max(_items.keys()) + 1
+    _items[new_id] = {"id": new_id, **item.model_dump()}
+    return _items[new_id]

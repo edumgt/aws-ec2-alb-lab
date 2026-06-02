@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  BE_IMAGE: edumgt/be-fastapi-hello:e4644bd1cb5d2bf89960e48686a136f1141d07f1
-  FE_IMAGE: edumgt/fe-ag-grid:e4644bd1cb5d2bf89960e48686a136f1141d07f1
+  BE_IMAGE: edumgt/be-fastapi-hello:df6cd0f6aeaa0dd48ae38f187520fa7e100ef132
+  FE_IMAGE: edumgt/fe-ag-grid:df6cd0f6aeaa0dd48ae38f187520fa7e100ef132
 
 jobs:
   deploy:
@@ -21,8 +21,8 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            BE_IMAGE="edumgt/be-fastapi-hello:e4644bd1cb5d2bf89960e48686a136f1141d07f1"
-            FE_IMAGE="edumgt/fe-ag-grid:e4644bd1cb5d2bf89960e48686a136f1141d07f1"
+            BE_IMAGE="edumgt/be-fastapi-hello:df6cd0f6aeaa0dd48ae38f187520fa7e100ef132"
+            FE_IMAGE="edumgt/fe-ag-grid:df6cd0f6aeaa0dd48ae38f187520fa7e100ef132"
 
             # ── Pull ───────────────────────────────────────────────────
             docker pull "$BE_IMAGE"

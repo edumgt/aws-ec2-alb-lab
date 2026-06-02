@@ -4,28 +4,43 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ops Pulse Grid</title>
-    <meta
-      name="description"
-      content="Nginx static hosting용 AG Grid 기반 운영 대시보드"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <meta name="description" content="서비스 배포 현황 대시보드" />
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@34.1.2/dist/ag-grid-community.min.js"></script>
   </head>
   <body>
+
+    <!-- 상단 네비 바 -->
+    <nav class="topbar">
+      <a class="topbar-logo" href="#">
+        <!-- Copilot 스타일 그라디언트 아이콘 -->
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="cg" x1="0" y1="0" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#5b6cf9"/>
+              <stop offset="50%" stop-color="#a855f7"/>
+              <stop offset="100%" stop-color="#ec4899"/>
+            </linearGradient>
+          </defs>
+          <rect width="22" height="22" rx="6" fill="url(#cg)"/>
+          <path d="M6 11a5 5 0 1 0 10 0A5 5 0 0 0 6 11Z" fill="white" opacity="0.9"/>
+          <circle cx="11" cy="11" r="2.5" fill="url(#cg)"/>
+        </svg>
+        Ops Pulse
+      </a>
+      <div class="topbar-divider"></div>
+      <span class="topbar-title">서비스 배포 현황</span>
+    </nav>
+
     <div class="shell">
+      <!-- 히어로 -->
       <header class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Static Ops Console</p>
-          <h1>ftp 로 업로드한 소스</h1>
+          <p class="eyebrow">✦ Deployment Dashboard</p>
+          <h1>서비스 배포 현황</h1>
           <p class="hero-text">
-            번들러 없이 바로 올릴 수 있는 정적 웹앱입니다. 인스턴스 상태,
-            담당자, 배포 진행률을 빠르게 탐색하고 필터링할 수 있습니다.
+            인스턴스 상태, 담당자, 배포 진행률을 실시간으로 탐색하고
+            필터링합니다.
           </p>
         </div>
         <div class="hero-panel">
@@ -45,9 +60,10 @@
       </header>
 
       <main class="workspace">
+        <!-- 툴바 -->
         <section class="toolbar">
           <label class="search-field" for="quickFilter">
-            <span>Quick Search</span>
+            <span>검색</span>
             <input
               id="quickFilter"
               type="search"
@@ -56,24 +72,15 @@
           </label>
 
           <div class="toolbar-actions">
-            <button type="button" class="chip is-active" data-filter="all">
-              전체
-            </button>
-            <button type="button" class="chip" data-filter="healthy">
-              Healthy
-            </button>
-            <button type="button" class="chip" data-filter="warning">
-              Warning
-            </button>
-            <button type="button" class="chip" data-filter="critical">
-              Critical
-            </button>
-            <button type="button" class="ghost-button" id="resetFilters">
-              필터 초기화
-            </button>
+            <button type="button" class="chip is-active" data-filter="all">전체</button>
+            <button type="button" class="chip" data-filter="healthy">Healthy</button>
+            <button type="button" class="chip" data-filter="warning">Warning</button>
+            <button type="button" class="chip" data-filter="critical">Critical</button>
+            <button type="button" class="ghost-button" id="resetFilters">초기화</button>
           </div>
         </section>
 
+        <!-- 그리드 패널 -->
         <section class="panel">
           <div class="panel-head">
             <div>
