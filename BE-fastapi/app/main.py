@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import List
 
 app = FastAPI(
     title="BE FastAPI Hello",
@@ -13,6 +15,7 @@ EC2 + Docker 배포 실습용 FastAPI 서비스입니다.
 ### 엔드포인트
 - **GET /** — 헬로 메시지
 - **GET /health** — ALB 헬스체크
+- **GET /api/services** — 서비스 배포 현황 목록 (AG Grid 목업)
 - **GET /items/{item_id}** — 아이템 조회
 - **POST /items** — 아이템 생성
 """,
@@ -21,8 +24,26 @@ EC2 + Docker 배포 실습용 FastAPI 서비스입니다.
     redoc_url="/redoc",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # ── Response / Request 모델 ────────────────────────────────────────────
+
+class ServiceRow(BaseModel):
+    service: str
+    region: str
+    owner: str
+    status: str
+    progress: int
+    instances: int
+    traffic: int
+    updatedAt: str
+
 
 class MessageResponse(BaseModel):
     message: str = Field(..., example="hello world")
@@ -43,6 +64,24 @@ class ItemResponse(Item):
 
 
 # ── 엔드포인트 ────────────────────────────────────────────────────────
+
+_services: List[dict] = [
+    {"service": "edge-auth",        "region": "ap-northeast-2", "owner": "Platform",   "status": "Healthy",  "progress": 96, "instances": 4, "traffic": 18420, "updatedAt": "2026-04-02 09:12"},
+    {"service": "billing-api",      "region": "ap-northeast-2", "owner": "Payments",   "status": "Warning",  "progress": 72, "instances": 2, "traffic": 9480,  "updatedAt": "2026-04-02 09:08"},
+    {"service": "ops-admin",        "region": "ap-northeast-2", "owner": "Core Web",   "status": "Healthy",  "progress": 88, "instances": 3, "traffic": 5260,  "updatedAt": "2026-04-02 08:55"},
+    {"service": "report-sync",      "region": "ap-northeast-2", "owner": "Data",       "status": "Critical", "progress": 41, "instances": 1, "traffic": 1120,  "updatedAt": "2026-04-02 08:47"},
+    {"service": "cdn-warmup",       "region": "ap-northeast-2", "owner": "SRE",        "status": "Healthy",  "progress": 91, "instances": 2, "traffic": 15110, "updatedAt": "2026-04-02 08:21"},
+    {"service": "partner-gateway",  "region": "ap-northeast-2", "owner": "B2B",        "status": "Warning",  "progress": 67, "instances": 2, "traffic": 6820,  "updatedAt": "2026-04-02 08:03"},
+    {"service": "media-catalog",    "region": "ap-northeast-2", "owner": "Content",    "status": "Healthy",  "progress": 93, "instances": 5, "traffic": 20140, "updatedAt": "2026-04-02 07:50"},
+    {"service": "batch-router",     "region": "ap-northeast-2", "owner": "Automation", "status": "Critical", "progress": 38, "instances": 1, "traffic": 440,   "updatedAt": "2026-04-02 07:32"},
+]
+
+
+@app.get("/api/services", response_model=List[ServiceRow], tags=["Services"])
+def get_services():
+    """AG Grid FE용 서비스 배포 현황 목업 데이터"""
+    return _services
+
 
 @app.get("/", response_model=MessageResponse, tags=["General"])
 def hello_world():

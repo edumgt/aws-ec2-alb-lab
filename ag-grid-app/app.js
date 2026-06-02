@@ -1,85 +1,4 @@
-const rowData = [
-  {
-    service: "edge-auth",
-    region: "ap-northeast-2",
-    owner: "Platform",
-    status: "Healthy",
-    progress: 96,
-    instances: 4,
-    traffic: 18420,
-    updatedAt: "2026-04-02 09:12",
-  },
-  {
-    service: "billing-api",
-    region: "ap-northeast-2",
-    owner: "Payments",
-    status: "Warning",
-    progress: 72,
-    instances: 2,
-    traffic: 9480,
-    updatedAt: "2026-04-02 09:08",
-  },
-  {
-    service: "ops-admin",
-    region: "ap-northeast-2",
-    owner: "Core Web",
-    status: "Healthy",
-    progress: 88,
-    instances: 3,
-    traffic: 5260,
-    updatedAt: "2026-04-02 08:55",
-  },
-  {
-    service: "report-sync",
-    region: "ap-northeast-2",
-    owner: "Data",
-    status: "Critical",
-    progress: 41,
-    instances: 1,
-    traffic: 1120,
-    updatedAt: "2026-04-02 08:47",
-  },
-  {
-    service: "cdn-warmup",
-    region: "ap-northeast-2",
-    owner: "SRE",
-    status: "Healthy",
-    progress: 91,
-    instances: 2,
-    traffic: 15110,
-    updatedAt: "2026-04-02 08:21",
-  },
-  {
-    service: "partner-gateway",
-    region: "ap-northeast-2",
-    owner: "B2B",
-    status: "Warning",
-    progress: 67,
-    instances: 2,
-    traffic: 6820,
-    updatedAt: "2026-04-02 08:03",
-  },
-  {
-    service: "media-catalog",
-    region: "ap-northeast-2",
-    owner: "Content",
-    status: "Healthy",
-    progress: 93,
-    instances: 5,
-    traffic: 20140,
-    updatedAt: "2026-04-02 07:50",
-  },
-  {
-    service: "batch-router",
-    region: "ap-northeast-2",
-    owner: "Automation",
-    status: "Critical",
-    progress: 38,
-    instances: 1,
-    traffic: 440,
-    updatedAt: "2026-04-02 07:32",
-  },
-];
+const BE_API = "http://43.203.255.251:8000";
 
 const statusRank = {
   Healthy: 0,
@@ -151,7 +70,7 @@ const columnDefs = [
 ];
 
 const gridOptions = {
-  rowData,
+  rowData: [],
   columnDefs,
   defaultColDef: {
     flex: 1,
@@ -170,16 +89,28 @@ const gridOptions = {
 const gridElement = document.getElementById("serviceGrid");
 const gridApi = agGrid.createGrid(gridElement, gridOptions);
 
-function updateMetrics() {
+function updateMetrics(rowData) {
   const activeServices = rowData.length;
-  const avgProgress = Math.round(
-    rowData.reduce((sum, row) => sum + row.progress, 0) / rowData.length
-  );
+  const avgProgress = rowData.length
+    ? Math.round(rowData.reduce((sum, row) => sum + row.progress, 0) / rowData.length)
+    : 0;
   const urgentItems = rowData.filter((row) => row.status !== "Healthy").length;
 
   document.getElementById("activeServices").textContent = String(activeServices);
   document.getElementById("avgProgress").textContent = `${avgProgress}%`;
   document.getElementById("urgentItems").textContent = String(urgentItems);
+}
+
+async function loadServices() {
+  try {
+    const response = await fetch(`${BE_API}/api/services`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    gridApi.setGridOption("rowData", data);
+    updateMetrics(data);
+  } catch (err) {
+    console.error("서비스 데이터 로딩 실패:", err);
+  }
 }
 
 function setStatusFilter(status) {
@@ -226,4 +157,4 @@ document.getElementById("resetFilters").addEventListener("click", () => {
   document.querySelector('[data-filter="all"]').classList.add("is-active");
 });
 
-updateMetrics();
+loadServices();
