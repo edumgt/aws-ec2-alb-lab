@@ -1,15 +1,26 @@
-# Required
+# ECS Fargate 배포 변수 (Ansible)
+# deploy/ansible/deploy_ecs_cli.yml 에서 사용
+
+# AWS 기본 설정
 aws_region: ap-northeast-2
+
+# ECS 클러스터 / 서비스
 ecs_cluster: study-fargate-cluster
-ecs_service: study-fargate-service
-task_family: study-fargate-task
-ecr_repo: be-fastapi-hello
-container_name: api
+ecs_service: be-fastapi-service
+task_family: be-fastapi-task
+
+# ECR 리포지토리
+ecr_repo: be-test
+container_name: be-fastapi
 app_dir: ./BE-fastapi
 
-# Optional
+# 컨테이너 포트
 container_port: 8000
+
+# Fargate 컴퓨팅 리소스
 cpu: "256"
 memory: "512"
-# execution_role_arn: arn:aws:iam::<ACCOUNT_ID>:role/ecsTaskExecutionRole
-# task_role_arn: arn:aws:iam::<ACCOUNT_ID>:role/yourTaskRole
+
+# IAM Role (ecsTaskExecutionRole)
+execution_role_arn: "arn:aws:iam::086015456585:role/ecsTaskExecutionRole"
+# task_role_arn: ""

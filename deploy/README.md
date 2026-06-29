@@ -1,276 +1,309 @@
-# AWS CLI 기반 배포 샘플 3종
+# 배포 가이드 — aws-ec2-alb-lab
 
-이 폴더는 동일한 ECS(Fargate) 배포 흐름을 다음 3가지 방식으로 제공합니다.
+이 디렉토리는 **BE-fastapi** 와 **ag-grid-app(FE)** 를 다양한 방식으로 배포하는 스크립트와 설정을 모읍니다.
 
-1. Shell Script (`deploy/shell/deploy_ecs_cli.sh`)
-2. Ansible Playbook (`deploy/ansible/deploy_ecs_cli.yml`)
-3. GitHub Actions (`.github/workflows/deploy-ecs-aws-cli.yml`)
+---
 
-공통 흐름:
-1. ECR 리포지토리 확인/생성
-2. Docker 이미지 빌드
-3. ECR 푸시
-4. Task Definition 등록
-5. ECS Service 업데이트
-6. 서비스 안정화 대기
+## 배포 방식 선택 가이드
 
-## 1) Shell 방식
-파일:
-- `deploy/shell/deploy_ecs_cli.sh`
-- `deploy/shell/deploy.env.example`
-
-실행 예시:
-```bash
-cp deploy/shell/deploy.env.example .env.deploy
-set -a
-source .env.deploy
-set +a
-
-./deploy/shell/deploy_ecs_cli.sh
+```
+                    ┌──────────────────────────────────────────────────────┐
+                    │  이미지 빌드 · ECR Push                              │
+                    │  (ecr-push-be.sh — 로컬 수동)                        │
+                    └────────────────────┬─────────────────────────────────┘
+                                         │
+                    ┌────────────────────▼─────────────────────────────────┐
+                    │  ECR Registry                                         │
+                    │  086015456585.dkr.ecr.ap-northeast-2.amazonaws.com   │
+                    │  ├── be-test:latest   (FastAPI BE :8000)              │
+                    │  └── fe-test:latest   (Nginx FE  :80)                │
+                    └──────────┬───────────────────┬───────────────────────┘
+                               │                   │
+              ┌────────────────▼──────┐   ┌────────▼───────────────────────┐
+              │  방식 A: EC2 직접      │   │  방식 B: ECS Fargate            │
+              │  deploy-ecr-ec2.yml  │   │  deploy-ecs-aws-cli.yml        │
+              │  (Git push 자동)      │   │  (workflow_dispatch 수동)       │
+              │                      │   │                                  │
+              │  docker pull+run      │   │  Task Definition 등록           │
+              │  EC2: 43.203.255.251  │   │  ECS Service 업데이트           │
+              └──────────────────────┘   └──────────────────────────────────┘
 ```
 
-## 2) Ansible 방식
-필요:
-- ansible
-- aws cli
-- docker
+| 방식 | 트리거 | 대상 | 파일 |
+|------|--------|------|------|
+| A-1. 로컬 ECR Push | 수동 | ECR | `deploy/ecr-push-be.sh` |
+| A-2. EC2 자동 배포 | `git push` (main) | EC2 → Docker | `.github/workflows/deploy-ecr-ec2.yml` |
+| A-3. EC2 수동 적용 | EC2 SSH 접속 후 | EC2 → Docker | `deploy/shell/ec2-apply.sh` |
+| B-1. ECS Shell | 수동 | ECS Fargate | `deploy/shell/deploy_ecs_cli.sh` |
+| B-2. ECS Ansible | 수동 | ECS Fargate | `deploy/ansible/deploy_ecs_cli.yml` |
+| B-3. ECS GitHub Actions | `workflow_dispatch` | ECS Fargate | `.github/workflows/deploy-ecs-aws-cli.yml` |
 
-변수 파일:
-- `deploy/ansible/group_vars/all.yml`
+---
 
-실행:
-```bash
-ansible-playbook -i deploy/ansible/inventory.ini deploy/ansible/deploy_ecs_cli.yml
+## 사전 준비 — IAM 및 자격증명
+
+### GitHub Actions (방식 A-2, B-3)
+
+GitHub Secrets에 다음을 등록합니다.
+
+```
+AWS_ACCESS_KEY_ID     : info-pro IAM 유저 Access Key ID
+AWS_SECRET_ACCESS_KEY : info-pro IAM 유저 Secret Access Key
+EC2_SSH_KEY           : ~/.ssh/kdy-test.pem 전체 내용 (개행 포함)
 ```
 
-## 3) GitHub Actions 방식
-워크플로우:
-- `.github/workflows/deploy-ecs-aws-cli.yml`
-
-필수 설정:
-- GitHub `Secrets`
-  - `AWS_ROLE_TO_ASSUME` (OIDC로 Assume할 Role ARN)
-- GitHub `Variables`
-  - `AWS_REGION`, `ECS_CLUSTER`, `ECS_SERVICE`, `TASK_FAMILY`, `ECR_REPO`, `CONTAINER_NAME`
-  - 선택: `CONTAINER_PORT`, `CPU`, `MEMORY`
-
-권장:
-- 장기 Access Key 대신 OIDC + IAM Role 사용
-- 배포 전후 헬스체크 알람(CloudWatch Alarm) 연동
-
-## 4) 실습: `deploy-ecr-ec2.yml`용 AWS CLI 인프라 구성
-
-아래 실습은 [deploy-ecr-ec2.yml](https://github.com/edumgt/investment-analysis/blob/main/.github/workflows/deploy-ecr-ec2.yml) 기준으로,
-GitHub Actions가 ECR 빌드/푸시 후 EC2에 `docker compose` 배포할 수 있는 최소 인프라를 AWS CLI로 준비하는 예시입니다.
-
-### 4-1. 환경변수 준비
+IAM 유저 `info-pro` 에 필요한 정책이 없다면:
 ```bash
-export AWS_REGION="ap-northeast-2"
-export LAB_NAME="investment-analysis"
-export AWS_ACCOUNT_ID="YOUR_ACCOUNT_ID"         # 예: 111111111111
-export WEBAPP_ECR_REPOSITORY="investment-analysis-webapp"
-export MONGODB_ECR_REPOSITORY="investment-analysis-mongodb"
-export VPC_ID="<기존 VPC ID>"
-export PUBLIC_SUBNET_ID="<퍼블릭 서브넷 ID>"
-export MY_IP_CIDR="<내 공인IP>/32"              # 예: 1.2.3.4/32
-export KEY_NAME="${LAB_NAME}-key"               # 충돌 시 "${LAB_NAME}-key-$(date +%Y%m%d%H%M%S)" 권장
-export INSTANCE_TYPE="t3.small"
-export AMI_ID="<Amazon Linux 2023 AMI ID>"
-```
-```bash
-# Amazon Linux 2023 AMI 조회 예시
-aws ssm get-parameters \
-  --names /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64 \
-  --query 'Parameters[0].Value' --output text --region "$AWS_REGION"
+bash iam/setup/01_setup_iam_user_policy.sh
 ```
 
-> VPC/Subnet이 없다면 [EC2/001.md](https://github.com/edumgt/aws-ec2-alb-lab/blob/main/EC2/001.md) 순서대로 먼저 생성합니다.
-
-### 4-2. 보안그룹 생성 (SSH + 앱 포트)
+OIDC 방식으로 전환하려면 (Access Key 불필요):
 ```bash
-EC2_SG_ID=$(aws ec2 create-security-group \
-  --group-name "${LAB_NAME}-ec2-sg" \
-  --description "EC2 SG for ${LAB_NAME}" \
-  --vpc-id "$VPC_ID" \
-  --query 'GroupId' --output text --region "$AWS_REGION")
-
-aws ec2 authorize-security-group-ingress \
-  --group-id "$EC2_SG_ID" \
-  --ip-permissions \
-  "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=$MY_IP_CIDR,Description=ssh-from-admin}]" \
-  "IpProtocol=tcp,FromPort=8000,ToPort=8000,IpRanges=[{CidrIp=$MY_IP_CIDR,Description=webapp-http-from-admin}]" \
-  --region "$AWS_REGION"
-```
-> 학습 편의로 외부 공개가 필요하면 8000 포트 CIDR을 별도 지정하되, 운영 환경에서는 0.0.0.0/0 개방을 피하세요.
-
-### 4-3. GitHub Actions Assume Role 생성 (OIDC)
-> OIDC Provider(`token.actions.githubusercontent.com`)가 계정에 없다면 먼저 생성해야 합니다.
-> 기존 계정에 이미 설정된 경우 아래 Role 생성 단계부터 진행하면 됩니다.
-
-없다면 다음처럼 생성합니다.
-```bash
-# 먼저 최신 thumbprint를 확인한 뒤 아래 create 명령에 반영하세요.
-echo | openssl s_client -servername token.actions.githubusercontent.com -showcerts -connect token.actions.githubusercontent.com:443 2>/dev/null \
-  | openssl x509 -fingerprint -noout -sha1 \
-  | cut -d'=' -f2 | tr -d ':'
-
-aws iam create-open-id-connect-provider \
-  --url "https://token.actions.githubusercontent.com" \
-  --client-id-list "sts.amazonaws.com" \
-  --thumbprint-list "1b511abead59c6ce207077c0bf0e0043b1382612"
-```
-> thumbprint 값은 인증서 교체로 바뀔 수 있으니 실행 전 AWS/GitHub 공식 문서의 최신 값을 확인하세요.
-> - AWS IAM OIDC Provider: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
-> - GitHub OIDC in AWS: https://docs.github.com/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
-> - 아래 예시 thumbprint 값은 바뀔 수 있으므로 그대로 사용하지 말고 반드시 위 명령/공식 문서로 검증하세요.
-
-신뢰 정책 파일(`trust-policy.json`)을 만든 뒤 Role을 생성합니다.
-```bash
-cat > trust-policy.json <<JSON
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": { "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com" },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
-        "StringLike": { "token.actions.githubusercontent.com:sub": "repo:edumgt/investment-analysis:*" }
-      }
-    }
-  ]
-}
-JSON
-
-aws iam create-role \
-  --role-name "${LAB_NAME}-github-actions-role" \
-  --assume-role-policy-document file://trust-policy.json
+bash iam/setup/03_setup_github_oidc.sh
+# → Secret AWS_ROLE_TO_ASSUME 등록 후 workflow에서 role-to-assume 방식으로 교체
 ```
 
-권한 정책 파일(`gha-deploy-policy.json`)을 연결합니다.
-```bash
-cat > gha-deploy-policy.json <<JSON
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["ecr:GetAuthorizationToken"],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:CompleteLayerUpload",
-        "ecr:UploadLayerPart",
-        "ecr:InitiateLayerUpload",
-        "ecr:PutImage",
-        "ecr:BatchGetImage",
-        "ecr:DescribeRepositories",
-        "ecr:CreateRepository"
-      ],
-      "Resource": [
-        "arn:aws:ecr:${AWS_REGION}:${AWS_ACCOUNT_ID}:repository/${WEBAPP_ECR_REPOSITORY}",
-        "arn:aws:ecr:${AWS_REGION}:${AWS_ACCOUNT_ID}:repository/${MONGODB_ECR_REPOSITORY}"
-      ]
-    }
-  ]
-}
-JSON
+자세한 내용 → [iam/README.md](../iam/README.md)
 
-aws iam put-role-policy \
-  --role-name "${LAB_NAME}-github-actions-role" \
-  --policy-name "${LAB_NAME}-gha-deploy-policy" \
-  --policy-document file://gha-deploy-policy.json
+### 로컬 스크립트 (방식 A-1, B-1, B-2)
+
+```bash
+# info-pro 키로 구성 (info-pro_accessKeys.csv 참조)
+aws configure
+# AWS Access Key ID     : [info-pro Access Key]
+# AWS Secret Access Key : [info-pro Secret Key]
+# Default region        : ap-northeast-2
 ```
 
-### 4-4. EC2 접속용 Key Pair와 인스턴스 생성
+### EC2 Instance Profile (EC2에서 직접 실행 시)
+
+EC2가 IAM Instance Profile 없이 `aws ecr get-login-password` 를 사용하려면
+`~/.aws/credentials` 를 직접 설정해야 합니다:
 ```bash
-if ! aws ec2 describe-key-pairs --key-names "$KEY_NAME" --region "$AWS_REGION" >/dev/null 2>&1; then
-  aws ec2 create-key-pair \
-    --key-name "$KEY_NAME" \
-    --query 'KeyMaterial' --output text \
-    --region "$AWS_REGION" > "${KEY_NAME}.pem"
-  chmod 400 "${KEY_NAME}.pem"
-else
-  echo "KeyPair ${KEY_NAME} already exists. 기존 pem 파일이 로컬에 있어야 접속 가능합니다."
-  echo "pem 파일이 없다면 AWS에서 기존 키페어를 삭제한 뒤 다시 생성하세요."
-  echo "또는 KEY_NAME 값을 새 이름으로 바꿔 다시 생성할 수 있습니다."
-  echo "주의: 기존 키페어를 삭제/재생성하면 기존 인스턴스 SSH 접근이 끊길 수 있습니다."
-fi
-
-INSTANCE_ID=$(aws ec2 run-instances \
-  --image-id "$AMI_ID" \
-  --instance-type "$INSTANCE_TYPE" \
-  --key-name "$KEY_NAME" \
-  --security-group-ids "$EC2_SG_ID" \
-  --subnet-id "$PUBLIC_SUBNET_ID" \
-  --associate-public-ip-address \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${LAB_NAME}-ec2}]" \
-  --query 'Instances[0].InstanceId' --output text \
-  --region "$AWS_REGION")
-
-aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region "$AWS_REGION"
-
-EC2_PUBLIC_IP=$(aws ec2 describe-instances \
-  --instance-ids "$INSTANCE_ID" \
-  --query 'Reservations[0].Instances[0].PublicIpAddress' \
-  --output text --region "$AWS_REGION")
-echo "$EC2_PUBLIC_IP"
+aws configure  # EC2 SSH 접속 후 실행
 ```
 
-### 4-5. EC2에 Docker / Compose 설치
+Instance Profile 방식(권장)으로 전환하려면:
 ```bash
-ssh -i "${KEY_NAME}.pem" ec2-user@"$EC2_PUBLIC_IP" <<EOF
-set -uo pipefail
-sudo dnf -y update
-sudo dnf -y install docker
-sudo systemctl enable --now docker
-sudo usermod -aG docker ec2-user
-sudo mkdir -p "/home/ec2-user/${LAB_NAME}"
-EOF
-```
-
-> `usermod -aG docker` 반영을 위해 SSH 세션을 다시 접속하거나 `newgrp docker`를 실행해야 합니다.
-
-### 4-6. GitHub 저장소 Secrets / Variables 매핑
-`deploy-ecr-ec2.yml` 기준 필수값은 다음과 같습니다.
-
-- **Secrets**
-  - `AWS_ROLE_ARN`: `arn:aws:iam::${AWS_ACCOUNT_ID}:role/${LAB_NAME}-github-actions-role`
-  - `EC2_HOST`: `EC2_PUBLIC_IP`
-  - `EC2_USERNAME`: `ec2-user` (Ubuntu AMI면 `ubuntu`)
-  - `EC2_SSH_KEY`: `${KEY_NAME}.pem` 전체 내용
-  - `BACKEND_ENV_FILE`: 애플리케이션 `.env` 내용
-- **Variables**
-  - `AWS_REGION`
-  - `WEBAPP_ECR_REPOSITORY` (예: `investment-analysis-webapp`)
-  - `MONGODB_ECR_REPOSITORY` (예: `investment-analysis-mongodb`)
-  - `MONGODB_SOURCE_IMAGE` (기본 `mongo:7`)
-  - `EC2_DEPLOY_PATH` (예: `/home/ec2-user/investment-analysis`)
-  - `WEBAPP_PORT` (예: `8000`)
-
-### 4-7. 검증 및 정리
-```bash
-# EC2 상태 확인
-aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --region "$AWS_REGION" \
-  --query 'Reservations[0].Instances[0].[State.Name,PublicIpAddress,SecurityGroups[*].GroupId]'
-
-# 롤 삭제(실습 종료 시)
-aws iam delete-role-policy \
-  --role-name "${LAB_NAME}-github-actions-role" \
-  --policy-name "${LAB_NAME}-gha-deploy-policy"
-aws iam delete-role --role-name "${LAB_NAME}-github-actions-role"
-
-# 인스턴스/SG 정리(실습 종료 시)
-aws ec2 terminate-instances --instance-ids "$INSTANCE_ID" --region "$AWS_REGION"
-aws ec2 wait instance-terminated --instance-ids "$INSTANCE_ID" --region "$AWS_REGION"
-aws ec2 delete-security-group --group-id "$EC2_SG_ID" --region "$AWS_REGION"
+bash iam/setup/02_setup_ec2_role.sh
 ```
 
 ---
 
-## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=deploy+README)
+## 방식 A-1. 로컬 수동 ECR Push
+
+**파일**: `deploy/ecr-push-be.sh` (또는 루트의 `ecr-push-be.sh`)
+
+```bash
+# 기본 (latest 태그)
+bash deploy/ecr-push-be.sh
+
+# 특정 태그
+IMAGE_TAG=v1.2.0 bash deploy/ecr-push-be.sh
+```
+
+수행 내용:
+1. ECR 로그인 (`aws ecr get-login-password`)
+2. `BE-fastapi/` → 빌드 → `be-test:latest` 푸시
+3. `ag-grid-app/` → 빌드 → `fe-test:latest` 푸시
+
+---
+
+## 방식 A-2. GitHub Actions — ECR + EC2 자동 배포
+
+**파일**: `.github/workflows/deploy-ecr-ec2.yml`
+
+`main` 브랜치에 `BE-fastapi/**` 또는 `ag-grid-app/**` 파일 변경 후 push 하면 자동 실행됩니다.
+
+```
+git push origin main
+→ build-push job : ECR 로그인 → be-test:latest, fe-test:latest 빌드 및 push
+→ deploy job     : SSH(43.203.255.251) → pull → docker run (포트 8000, 80)
+```
+
+수동 실행 (GitHub 콘솔 또는 CLI):
+```bash
+gh workflow run deploy-ecr-ec2.yml
+```
+
+---
+
+## 방식 A-3. EC2 수동 적용
+
+**파일**: `deploy/shell/ec2-apply.sh`
+
+EC2에 SSH 접속하지 않고 로컬에서 최신 ECR 이미지를 EC2에 적용할 때 사용합니다.
+
+```bash
+# 기본 (환경변수 기반)
+EC2_HOST=43.203.255.251 \
+EC2_KEY=~/.ssh/kdy-test.pem \
+bash deploy/shell/ec2-apply.sh
+```
+
+EC2 직접 접속 후 실행도 가능:
+```bash
+ssh -i ~/.ssh/kdy-test.pem ubuntu@43.203.255.251
+# 접속 후:
+bash /home/ubuntu/aws-ec2-alb-lab/deploy/shell/ec2-apply.sh
+```
+
+---
+
+## 방식 B. ECS Fargate 배포 (3가지 선택)
+
+### 환경변수 설정 (공통)
+
+```bash
+cp deploy/shell/deploy.env.example .env.deploy
+# 필요시 값 수정 후:
+set -a && source .env.deploy && set +a
+```
+
+### B-1. Shell Script
+
+```bash
+set -a && source .env.deploy && set +a
+bash deploy/shell/deploy_ecs_cli.sh
+```
+
+7단계 흐름: ECR 리포 확인 → ECR 로그인 → 빌드+Push → Task Definition → ECS 업데이트 → 안정화 대기
+
+### B-2. Ansible
+
+```bash
+# 설치 확인
+ansible --version
+aws --version
+docker --version
+
+ansible-playbook \
+  -i deploy/ansible/inventory.ini \
+  deploy/ansible/deploy_ecs_cli.yml
+```
+
+변수 편집: `deploy/ansible/group_vars/all.yml`
+
+### B-3. GitHub Actions (수동 트리거)
+
+```bash
+gh workflow run deploy-ecs-aws-cli.yml
+```
+
+워크플로우 파일: `.github/workflows/deploy-ecs-aws-cli.yml`
+
+ECS 관련 사전 작업:
+```bash
+# ECS Task Execution Role 생성
+bash iam/setup/04_setup_ecs_role.sh
+
+# CloudWatch 로그 그룹 생성
+aws logs create-log-group --log-group-name /ecs/be-fastapi-service --region ap-northeast-2
+aws logs create-log-group --log-group-name /ecs/fe-ag-grid-service  --region ap-northeast-2
+
+# ECS 클러스터 생성 (없는 경우)
+aws ecs create-cluster --cluster-name study-fargate-cluster --region ap-northeast-2
+```
+
+자세한 Task Definition 예시 → [ECS/004_docker_ecr_ecs_pipeline.md](../ECS/004_docker_ecr_ecs_pipeline.md)
+
+---
+
+## EC2 인스턴스 신규 생성
+
+Docker 및 ECR 인증이 구성된 EC2 인스턴스를 처음부터 만들 때:
+
+```bash
+# Ubuntu 22.04 + Docker 설치 + ECR 이미지 pull
+bash deploy/create-ec2-docker.sh
+```
+
+생성 내용:
+- Ubuntu 22.04 LTS AMI (최신 자동 조회)
+- 기존 VPC/서브넷 자동 감지 (없으면 생성)
+- User Data로 Docker 설치 및 이미지 pull
+- 키페어: `kdy-test`
+
+AMI 저장 및 재사용 방법 → [EC2/010_ami_guide.md](../EC2/010_ami_guide.md)
+
+---
+
+## 참고 리소스
+
+| 주제 | 문서 |
+|------|------|
+| Docker → ECR → ECS 전체 흐름 | [ECS/004_docker_ecr_ecs_pipeline.md](../ECS/004_docker_ecr_ecs_pipeline.md) |
+| IAM 정책·OIDC·설정 스크립트 | [iam/README.md](../iam/README.md) |
+| LB 종류·타겟그룹·오토스케일러 | [LB/002_lb_types_targetgroup_autoscaling.md](../LB/002_lb_types_targetgroup_autoscaling.md) |
+| AMI 저장·검색·사용 | [EC2/010_ami_guide.md](../EC2/010_ami_guide.md) |
+| ALB 설정 기초 | [LB/001_alb_settings_lab.md](../LB/001_alb_settings_lab.md) |
+| ECS Fargate 핸즈온 | [ECS/001_fargate_hands_on.md](../ECS/001_fargate_hands_on.md) |
+
+---
+
+## ECR 레지스트리 정보
+
+```
+Registry  : 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com
+BE 리포   : 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/be-test:latest
+FE 리포   : 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/fe-test:latest
+IAM 유저  : info-pro (Access Key 방식 CI/CD)
+EC2 호스트: 43.203.255.251 (ubuntu@)
+```
+
+---
+
+## 자주 사용하는 명령 모음
+
+```bash
+# ECR 이미지 확인
+aws ecr describe-images --region ap-northeast-2 --repository-name be-test \
+  --query 'imageDetails[*].{Tag:imageTags[0],Pushed:imagePushedAt}' --output table
+
+# EC2 컨테이너 상태
+ssh -i ~/.ssh/kdy-test.pem ubuntu@43.203.255.251 \
+  "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+
+# BE 헬스체크
+curl http://43.203.255.251:8000/health
+
+# FE 접속 확인
+curl -s -o /dev/null -w "%{http_code}" http://43.203.255.251/
+
+# GitHub Actions 워크플로우 상태
+gh run list --workflow deploy-ecr-ec2.yml --limit 5
+
+# ECS 서비스 상태
+aws ecs describe-services \
+  --cluster study-fargate-cluster \
+  --services be-fastapi-service \
+  --region ap-northeast-2 \
+  --query 'services[0].{Status:status,Running:runningCount,Desired:desiredCount}'
+```
+
+---
+
+## 리소스 정리 (실습 종료)
+
+```bash
+# EC2 컨테이너 중지
+ssh -i ~/.ssh/kdy-test.pem ubuntu@43.203.255.251 \
+  "docker stop fastapi-app fe-ag-grid && docker rm fastapi-app fe-ag-grid"
+
+# ECS 서비스 중지 (desired=0)
+aws ecs update-service \
+  --cluster study-fargate-cluster \
+  --service be-fastapi-service \
+  --desired-count 0 \
+  --region ap-northeast-2
+
+# ECR 이미지 삭제
+aws ecr batch-delete-image \
+  --region ap-northeast-2 \
+  --repository-name be-test \
+  --image-ids imageTag=latest
+aws ecr batch-delete-image \
+  --region ap-northeast-2 \
+  --repository-name fe-test \
+  --image-ids imageTag=latest
+```

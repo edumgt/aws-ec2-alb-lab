@@ -10,6 +10,7 @@ EC2 + VPC + ALB + Auto Scaling 실습을 단계별로 수행할 수 있도록 �
 5. [004.md](004.md): 콘솔 중심 AMI/Template/ASG 체크리스트
 6. [005.md](005.md): 애플리케이션 런타임 준비(JDK/전송)
 7. [008.md](008.md): 운영 점검용 조회 명령 모음
+8. [010_ami_guide.md](010_ami_guide.md): AMI 저장·검색·사용 가이드
 
 ## 실습 전 체크
 - AWS 계정 생성 및 결제/본인 인증 완료
