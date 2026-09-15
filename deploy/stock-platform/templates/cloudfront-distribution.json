@@ -1,0 +1,31 @@
+{
+  "CallerReference": "__APP__-__REF__",
+  "Comment": "__APP__ frontend + api",
+  "Enabled": true,
+  "DefaultRootObject": "index.html",
+  "Aliases": { "Quantity": 1, "Items": ["__APP_HOST__"] },
+  "ViewerCertificate": { "ACMCertificateArn": "__CF_CERT_ARN__", "SSLSupportMethod": "sni-only", "MinimumProtocolVersion": "TLSv1.2_2021" },
+  "Origins": { "Quantity": 2, "Items": [
+    { "Id": "s3-frontend", "DomainName": "__FE_BUCKET__.s3.__REGION__.amazonaws.com",
+      "OriginAccessControlId": "__OAC_ID__", "S3OriginConfig": { "OriginAccessIdentity": "" } },
+    { "Id": "alb-api", "DomainName": "__ALB_DNS__",
+      "CustomOriginConfig": { "HTTPPort": 80, "HTTPSPort": 443, "OriginProtocolPolicy": "https-only",
+        "OriginSslProtocols": { "Quantity": 1, "Items": ["TLSv1.2"] } } }
+  ]},
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "s3-frontend", "ViewerProtocolPolicy": "redirect-to-https", "Compress": true,
+    "AllowedMethods": { "Quantity": 2, "Items": ["GET", "HEAD"] },
+    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  },
+  "CacheBehaviors": { "Quantity": 2, "Items": [
+    { "PathPattern": "/api/*", "TargetOriginId": "alb-api", "ViewerProtocolPolicy": "https-only", "Compress": true,
+      "AllowedMethods": { "Quantity": 7, "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"] },
+      "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+      "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3" },
+    { "PathPattern": "/openapi/*", "TargetOriginId": "alb-api", "ViewerProtocolPolicy": "https-only", "Compress": true,
+      "AllowedMethods": { "Quantity": 7, "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"] },
+      "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+      "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3" }
+  ]},
+  "PriceClass": "PriceClass_200"
+}

@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadBrokerKeys",
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"],
+      "Resource": "arn:aws:ssm:__REGION__:__ACCOUNT_ID__:parameter__SSM_PREFIX__/*"
+    },
+    {
+      "Sid": "DecryptViaSSM",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": { "StringEquals": { "kms:ViaService": "ssm.__REGION__.amazonaws.com" } }
+    }
+  ]
+}

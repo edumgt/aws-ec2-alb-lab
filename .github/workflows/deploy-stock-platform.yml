@@ -1,0 +1,126 @@
+name: Stock platform deploy (S3+CloudFront / ECR / EC2 via SSM / Lambda)
+
+# 사전 준비: deploy/stock-platform/09_github_actions.sh 가 아래 Secret/Variable 을 등록합니다.
+#   secrets : AWS_ROLE_TO_ASSUME
+#   vars    : AWS_REGION, ECR_REGISTRY, FE_BUCKET, CF_DIST_ID, APP_INSTANCE_ID, APP_HOST, APP_NAME
+# 이미지 소스는 stock-coin-trade 저장소(APP_SRC_REPO) 를 체크아웃해 빌드합니다.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/stock-platform/**'
+      - 'ag-grid-app/**'
+      - '.github/workflows/deploy-stock-platform.yml'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: '배포할 이미지 태그 (비우면 커밋 SHA, 롤백 시 이전 SHA 입력)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION:   ${{ vars.AWS_REGION }}
+  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+  APP_NAME:     ${{ vars.APP_NAME || 'stock-trade' }}
+  APP_SRC_REPO: ${{ vars.APP_SRC_REPO || 'edumgt/stock-coin-trade' }}
+  FE_REPO:      stock-coin-trade-frontend
+  BE_REPO:      stock-coin-trade-python-backend
+  IMAGE_TAG:    ${{ github.event.inputs.image_tag != '' && github.event.inputs.image_tag || github.sha }}
+
+jobs:
+  # ── 1. 정적 프론트엔드 → S3 → CloudFront 무효화 ─────────────────────────
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: "S3 sync (FRONTEND_DIR 기본값 ag-grid-app)"
+        run: |
+          aws s3 sync "${{ vars.FRONTEND_DIR || 'ag-grid-app' }}/" "s3://${{ vars.FE_BUCKET }}/" \
+            --delete --exclude "Dockerfile" --exclude "README.md" --cache-control "max-age=300"
+      - name: CloudFront invalidation
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.CF_DIST_ID }}" --paths "/*"
+
+  # ── 2. 컨테이너 이미지 → ECR (workflow_dispatch 로 태그를 준 경우 = 롤백, 빌드 생략) ──
+  backend-image:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.image_tag == ''
+    steps:
+      - name: 앱 소스 체크아웃
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.APP_SRC_REPO }}
+          ref: main
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Build & push (frontend nginx / python backend)
+        run: |
+          for pair in "$FE_REPO:docker/frontend.Dockerfile" "$BE_REPO:docker/python-backend.Dockerfile"; do
+            repo="${pair%%:*}"; df="${pair##*:}"
+            docker build -f "$df" -t "$ECR_REGISTRY/$repo:$IMAGE_TAG" -t "$ECR_REGISTRY/$repo:latest" .
+            docker push "$ECR_REGISTRY/$repo:$IMAGE_TAG"
+            docker push "$ECR_REGISTRY/$repo:latest"
+          done
+
+  # ── 3. 앱 EC2: SSM Run Command 로 compose pull/up (SSH 키 불필요) ──────────
+  backend-deploy:
+    runs-on: ubuntu-latest
+    needs: [backend-image]
+    if: always() && (needs.backend-image.result == 'success' || needs.backend-image.result == 'skipped')
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: SSM send-command
+        id: ssm
+        run: |
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.APP_INSTANCE_ID }}" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy $IMAGE_TAG" \
+            --parameters "commands=[
+              'set -e',
+              'cd /opt/stock-coin-trade && git pull --ff-only || true',
+              'sed -i \"s/^IMAGE_TAG=.*/IMAGE_TAG=$IMAGE_TAG/\" .env',
+              'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY',
+              'docker compose -p stock-coin-trade -f docker-compose.yml -f docker-compose.prod.yml pull',
+              'docker compose -p stock-coin-trade -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build --remove-orphans',
+              'docker image prune -f',
+              'docker ps --format \"table {{.Names}}\t{{.Image}}\t{{.Status}}\"'
+            ]" --query Command.CommandId --output text)
+          echo "cmd_id=$CMD_ID" >> "$GITHUB_OUTPUT"
+          aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "${{ vars.APP_INSTANCE_ID }}" || true
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "${{ vars.APP_INSTANCE_ID }}" \
+            --query '{Status:Status,Out:StandardOutputContent,Err:StandardErrorContent}' --output json | tee result.json
+          [ "$(jq -r .Status result.json)" = "Success" ]
+      - name: Smoke test
+        run: |
+          sleep 10
+          curl -fsS "https://${{ vars.APP_HOST }}/api/stocks/list" -o /dev/null -w "API %{http_code}\n"
+          curl -fsS "https://${{ vars.APP_HOST }}/index.html"      -o /dev/null -w "FE  %{http_code}\n"
+
+  # ── 4. Lambda 수집기 코드 갱신 (deploy/stock-platform/lambda 변경 시) ──────
+  lambda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update function code
+        run: |
+          (cd deploy/stock-platform/lambda/collector && zip -qr "$GITHUB_WORKSPACE/collector.zip" .)
+          aws lambda update-function-code --function-name "${APP_NAME}-price-collector" --zip-file fileb://collector.zip \
+            --query '{Fn:FunctionName,Sha:CodeSha256,Updated:LastModified}' --output table

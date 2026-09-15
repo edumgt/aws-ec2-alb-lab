@@ -10,3 +10,6 @@ __pycache__/
 aws/
 *.zip
 *.csv
+deploy/stock-platform/env.sh
+deploy/stock-platform/.state*
+.env.deploy

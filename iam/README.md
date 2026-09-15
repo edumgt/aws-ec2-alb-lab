@@ -8,16 +8,22 @@ iam/
 │   ├── ecr-push-policy.json       # info-pro 유저용 — ECR push/pull
 │   ├── ec2-ecr-pull-policy.json   # EC2 인스턴스 역할용 — ECR pull 전용
 │   ├── github-oidc-deploy-policy.json  # GitHub OIDC Role용 — ECR push/pull
-│   └── ecs-task-execution-policy.json  # ECS Task Execution Role — ECR + CW + SSM
+│   ├── ecs-task-execution-policy.json  # ECS Task Execution Role — ECR + CW + SSM
+│   ├── stock-platform-ec2-app-policy.json       # [주식 플랫폼] 앱 EC2 — SSM 읽기 + ECR pull (플레이스홀더)
+│   ├── stock-platform-lambda-policy.json        # [주식 플랫폼] 시세 수집 Lambda — SSM 읽기
+│   └── stock-platform-github-deploy-policy.json # [주식 플랫폼] GitHub OIDC 역할 추가 권한 (S3/CF/Lambda/SSM RunCommand)
 ├── trust-policies/                # 신뢰 관계 (Trust Policy) JSON
 │   ├── github-oidc-trust.json     # GitHub Actions OIDC → AssumeRoleWithWebIdentity
 │   ├── ec2-instance-trust.json    # EC2 서비스 → AssumeRole
-│   └── ecs-task-execution-trust.json  # ECS Tasks 서비스 → AssumeRole
+│   ├── ecs-task-execution-trust.json  # ECS Tasks 서비스 → AssumeRole
+│   ├── lambda-trust.json          # [주식 플랫폼] Lambda 서비스 → AssumeRole
+│   └── scheduler-trust.json       # [주식 플랫폼] EventBridge Scheduler → AssumeRole
 └── setup/                         # IAM 리소스 생성 셸 스크립트
     ├── 01_setup_iam_user_policy.sh
     ├── 02_setup_ec2_role.sh
     ├── 03_setup_github_oidc.sh
-    └── 04_setup_ecs_role.sh
+    ├── 04_setup_ecs_role.sh
+    └── 05_setup_stock_platform_roles.sh   # [주식 플랫폼] EC2/Lambda/Scheduler 역할 3종 (--delete 지원)
 ```
 
 ---
@@ -297,3 +303,67 @@ aws iam get-policy-version \
 | 설정 복잡도 | 낮음 | 중간 |
 | 자격증명 교체 | 수동 | 자동 |
 | 권장 여부 | 실습·개발 환경 | 프로덕션 환경 |
+
+---
+
+## 7. 주식투자 웹앱 플랫폼용 IAM 구성
+
+루트 README 의 "AWS 기반 주식투자 웹앱 플랫폼 시스템 구성" 과 `deploy/stock-platform/` 스크립트가 사용하는 역할입니다.  
+정책 JSON 은 계정·리전에 독립적으로 두기 위해 `__ACCOUNT_ID__`, `__REGION__`, `__SSM_PREFIX__`, `__APP__` 플레이스홀더를 쓰며, `05_setup_stock_platform_roles.sh` 가 실행 시 치환합니다.
+
+### 7-1. 인증 흐름
+
+```
+GitHub Actions ── OIDC ──► GitHubActionsECRRole
+                              ├─ (기존) ECR push: be-test, fe-test
+                              └─ (+ 인라인 ${APP}-platform-deploy)
+                                   S3 sync → CloudFront invalidation
+                                   ECR push: stock-coin-trade-*
+                                   Lambda UpdateFunctionCode
+                                   SSM SendCommand → 앱 EC2 (SSH 키 불필요)
+
+앱 EC2 ── 인스턴스 프로파일 ${APP}-ec2-profile ──► ${APP}-ec2-role
+                              ├─ SSM GetParameter*  : /stock-coin-trade/*  (증권사 키, DB URL)
+                              ├─ KMS Decrypt        : ssm 경유만
+                              ├─ ECR pull           : stock-coin-trade-*
+                              ├─ AmazonSSMManagedInstanceCore (Session Manager, Run Command)
+                              └─ CloudWatchAgentServerPolicy
+
+EventBridge Scheduler ── ${APP}-scheduler-role ──► lambda:InvokeFunction (${APP}-*)
+Lambda ── ${APP}-lambda-role ──► CloudWatch Logs + SSM GetParameter* (/stock-coin-trade/*)
+```
+
+### 7-2. 역할 목록
+
+| 역할 | 신뢰 주체 | 권한 | 정책 파일 |
+|---|---|---|---|
+| `${APP}-ec2-role` (+ `${APP}-ec2-profile`) | `ec2.amazonaws.com` | SSM 읽기, KMS 복호화(ssm 경유), ECR pull, SSM Core, CW Agent | `policies/stock-platform-ec2-app-policy.json` |
+| `${APP}-lambda-role` | `lambda.amazonaws.com` | 기본 로그 + SSM 읽기 | `policies/stock-platform-lambda-policy.json` |
+| `${APP}-scheduler-role` | `scheduler.amazonaws.com` | `lambda:InvokeFunction` (`${APP}-*`) | 인라인 (스크립트 내 생성) |
+| `GitHubActionsECRRole` (기존) | GitHub OIDC | + S3/CloudFront/Lambda/ECR/SSM RunCommand | `policies/stock-platform-github-deploy-policy.json` |
+
+### 7-3. 실행
+
+```bash
+# 생성 (APP, SSM_PREFIX, AWS_REGION 환경변수로 조정 가능)
+APP=stock-trade SSM_PREFIX=/stock-coin-trade bash iam/setup/05_setup_stock_platform_roles.sh
+
+# 기존 EC2 에 프로파일 붙이기
+aws ec2 associate-iam-instance-profile --instance-id <INSTANCE_ID> --iam-instance-profile Name=stock-trade-ec2-profile
+
+# GitHub OIDC 역할 권한 확장 (deploy/stock-platform/09_github_actions.sh 가 수행)
+sed -e "s|__ACCOUNT_ID__|$ACCOUNT_ID|g" -e "s|__REGION__|ap-northeast-2|g" -e "s|__APP__|stock-trade|g" \
+    -e "s|__FE_BUCKET__|$FE_BUCKET|g" -e "s|__DIST_ID__|$DIST_ID|g" -e "s|__INSTANCE_ID__|$INSTANCE_ID|g" \
+    iam/policies/stock-platform-github-deploy-policy.json > /tmp/gha.json
+aws iam put-role-policy --role-name GitHubActionsECRRole --policy-name stock-trade-platform-deploy --policy-document file:///tmp/gha.json
+
+# 삭제
+bash iam/setup/05_setup_stock_platform_roles.sh --delete
+```
+
+### 7-4. 최소 권한 원칙 적용 포인트
+
+- SSM 파라미터는 `${SSM_PREFIX}/*` 경로에만 접근. `kms:Decrypt` 는 `kms:ViaService = ssm.<region>.amazonaws.com` 조건으로 SSM 경유만 허용.
+- 앱 EC2 는 ECR **pull 만**, `stock-coin-trade-*` 리포지토리만.
+- GitHub 역할의 `ssm:SendCommand` 는 특정 인스턴스 ARN + `AWS-RunShellScript` 문서로 제한 → SSH 프라이빗 키를 GitHub Secret 에 두지 않아도 됨.
+- Scheduler 역할은 `${APP}-*` 함수만 호출 가능.

@@ -37,6 +37,7 @@
 | B-1. ECS Shell | 수동 | ECS Fargate | `deploy/shell/deploy_ecs_cli.sh` |
 | B-2. ECS Ansible | 수동 | ECS Fargate | `deploy/ansible/deploy_ecs_cli.yml` |
 | B-3. ECS GitHub Actions | `workflow_dispatch` | ECS Fargate | `.github/workflows/deploy-ecs-aws-cli.yml` |
+| C. 주식투자 플랫폼 전체 | 단계별 수동 + `git push` | VPC·RDS·ALB·EC2·CloudFront·Lambda | `deploy/stock-platform/*.sh`, `.github/workflows/deploy-stock-platform.yml` |
 
 ---
 
@@ -206,6 +207,36 @@ aws ecs create-cluster --cluster-name study-fargate-cluster --region ap-northeas
 ```
 
 자세한 Task Definition 예시 → [ECS/004_docker_ecr_ecs_pipeline.md](../ECS/004_docker_ecr_ecs_pipeline.md)
+
+---
+
+## 방식 C. 주식투자 웹앱 플랫폼 전체 구성 (`deploy/stock-platform/`)
+
+루트 README 의 **"AWS 기반 주식투자 웹앱 플랫폼 시스템 구성 (AWS CLI)"** 을 단계별 스크립트로 옮긴 세트입니다.  
+위 방식 A/B 가 "이미지를 어디에 올릴 것인가"라면, 방식 C 는 **네트워크 → 비밀 → RDS → ALB → EC2 → CloudFront → 서버리스 → 관측 → CI** 까지 플랫폼 전체를 만듭니다.
+
+```bash
+cp deploy/stock-platform/env.example.sh deploy/stock-platform/env.sh   # 도메인·이메일 등 수정
+bash deploy/stock-platform/01_network.sh
+bash deploy/stock-platform/02_secrets_iam.sh
+bash deploy/stock-platform/03_rds.sh
+bash deploy/stock-platform/04_ecr_acm_alb.sh
+bash deploy/stock-platform/05_app_ec2.sh
+bash deploy/stock-platform/06_frontend_cdn.sh
+bash deploy/stock-platform/07_serverless.sh
+bash deploy/stock-platform/08_observability.sh
+bash deploy/stock-platform/09_github_actions.sh
+```
+
+| 구분 | 방식 A (EC2 직접) | 방식 B (ECS) | 방식 C (플랫폼) |
+|---|---|---|---|
+| 대상 앱 | BE-fastapi / ag-grid-app | BE-fastapi | stock-coin-trade (또는 샘플로 대체) |
+| 배포 트리거 | SSH | Task Definition | **SSM Run Command** (SSH 키 불필요) |
+| 인증 | Access Key | Access Key | **OIDC 역할** |
+| 비밀 | EC2 `~/.aws` | — | **SSM Parameter Store** |
+| 워크플로우 | `deploy-ecr-ec2.yml` | `deploy-ecs-aws-cli.yml` | `deploy-stock-platform.yml` |
+
+상세 → [deploy/stock-platform/README.md](stock-platform/README.md), Fargate 전환 → [ECS/005_stock_platform_fargate.md](../ECS/005_stock_platform_fargate.md)
 
 ---
 

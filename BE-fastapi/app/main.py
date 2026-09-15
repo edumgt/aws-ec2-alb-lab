@@ -16,6 +16,7 @@ EC2 + Docker 배포 실습용 FastAPI 서비스입니다.
 - **GET /** — 헬로 메시지
 - **GET /health** — ALB 헬스체크
 - **GET /api/services** — 국내외 금융사 서비스 배포 현황 목록 (AG Grid 목업)
+- **GET /api/stocks/list** — 국내 주식 시세 목업 (주식투자 플랫폼 ALB 헬스체크 경로와 동일)
 - **GET /items/{item_id}** — 아이템 조회
 - **POST /items** — 아이템 생성
 """,
@@ -43,6 +44,15 @@ class ServiceRow(BaseModel):
     instances: int
     traffic: int
     updatedAt: str
+
+
+class StockRow(BaseModel):
+    symbol: str
+    name: str
+    market: str
+    price: int
+    change: float
+    volume: int
 
 
 class MessageResponse(BaseModel):
@@ -91,6 +101,24 @@ _services: List[dict] = [
 def get_services():
     """AG Grid FE용 국내외 금융사 서비스 배포 현황 목업 데이터"""
     return _services
+
+
+_stocks: List[dict] = [
+    {"symbol": "005930", "name": "삼성전자",     "market": "KOSPI",  "price": 71_200,  "change": 0.85,  "volume": 12_345_678},
+    {"symbol": "000660", "name": "SK하이닉스",   "market": "KOSPI",  "price": 182_500, "change": -1.24, "volume": 3_210_456},
+    {"symbol": "035420", "name": "NAVER",        "market": "KOSPI",  "price": 168_000, "change": 0.30,  "volume": 812_340},
+    {"symbol": "035720", "name": "카카오",       "market": "KOSPI",  "price": 41_950,  "change": -0.59, "volume": 2_945_120},
+    {"symbol": "005380", "name": "현대차",       "market": "KOSPI",  "price": 236_000, "change": 1.72,  "volume": 654_210},
+    {"symbol": "247540", "name": "에코프로비엠", "market": "KOSDAQ", "price": 158_700, "change": 2.91,  "volume": 1_120_034},
+    {"symbol": "086520", "name": "에코프로",     "market": "KOSDAQ", "price": 93_400,  "change": -2.10, "volume": 1_530_990},
+    {"symbol": "196170", "name": "알테오젠",     "market": "KOSDAQ", "price": 312_000, "change": 0.97,  "volume": 402_311},
+]
+
+
+@app.get("/api/stocks/list", response_model=List[StockRow], tags=["Stocks"])
+def list_stocks():
+    """주식투자 플랫폼 샘플 시세. ALB Target Group 헬스체크 경로(/api/stocks/list)로도 사용"""
+    return _stocks
 
 
 @app.get("/", response_model=MessageResponse, tags=["General"])

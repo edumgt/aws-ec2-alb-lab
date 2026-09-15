@@ -1,35 +1,43 @@
 # AG Grid Static App
 
-Nginx에 그대로 올릴 수 있는 바닐라 HTML/CSS/JS 기반 AG Grid 예제입니다.
+Nginx 나 S3 에 그대로 올릴 수 있는 바닐라 HTML/CSS/JS 기반 AG Grid 대시보드입니다.  
+**주식투자 웹앱 플랫폼 구성**(루트 README) 에서는 S3 + CloudFront 로 서비스되는 정적 프론트엔드 자리에 들어가는 샘플입니다.
 
 ## 파일 구성
-- `index.html`: CDN으로 AG Grid를 불러오는 진입점
+- `index.html`: CDN 으로 AG Grid 를 불러오는 진입점
+- `config.js`: **런타임 설정** — API 기본 주소(`apiBase`). 빌드 없이 환경별로 교체
+- `app.js`: 그리드 컬럼, 데이터 로드(`${apiBase}/api/services`), 필터 로직
 - `styles.css`: 대시보드 스타일
-- `app.js`: 그리드 컬럼, 데이터, 필터 로직
+- `Dockerfile`: `nginx:alpine` 에 정적 파일 복사 (ECR `fe-test` 이미지)
+
+## API 주소 설정 (`config.js`)
+
+| 배포 형태 | `apiBase` | 이유 |
+|---|---|---|
+| CloudFront 동일 도메인 (플랫폼 구성) | `""` | CloudFront 가 `/api/*` 를 ALB 로 넘기므로 상대 경로 사용, CORS 불필요 |
+| EC2 단독 (FE :80, BE :8000) | `"http://<EC2_PUBLIC_IP>:8000"` | 포트가 달라 절대 주소 필요 (BE 에 CORS 허용됨) |
+| 로컬 개발 | `"http://127.0.0.1:8000"` | `uvicorn` 로컬 백엔드 |
 
 ## 로컬 확인
-정적 파일이라 아무 웹서버에 올리면 됩니다.
-
-예시:
 ```bash
-cd /home/AWS-EC2-ECS-LB/ag-grid-app
-python3 -m http.server 8080
+cd ag-grid-app
+python3 -m http.server 8080      # http://127.0.0.1:8080
 ```
 
-브라우저에서 `http://127.0.0.1:8080` 접속
+## 배포 방법 3가지
 
-## Nginx 배포 예시
 ```bash
-sudo mkdir -p /var/www/html/ag-grid-app
-sudo cp -r /home/AWS-EC2-ECS-LB/ag-grid-app/* /var/www/html/ag-grid-app/
-sudo systemctl reload nginx
+# 1) S3 + CloudFront (플랫폼 구성, deploy/stock-platform/06_frontend_cdn.sh 가 수행)
+aws s3 sync . "s3://${FE_BUCKET}/" --delete --exclude Dockerfile --exclude README.md --cache-control "max-age=300"
+aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+
+# 2) ECR 이미지 (Nginx 컨테이너, EC2/ECS 용)
+docker build -t fe-test:latest . && bash ../deploy/ecr-push-be.sh
+
+# 3) EC2 Nginx 에 직접 복사
+sudo cp -r . /var/www/html/ag-grid-app/ && sudo systemctl reload nginx
 ```
 
-접속:
-`http://<EC2_PUBLIC_IP>/ag-grid-app/`
-
-
----
-
-## YouTube 참고 영상
-- [YouTube에서 관련 영상 찾아보기](https://www.youtube.com/results?search_query=ag+grid+app+README)
+## 관련 문서
+- 루트 README → "AWS 기반 주식투자 웹앱 플랫폼 시스템 구성" Phase E (S3 + CloudFront 오리진 2개)
+- [deploy/stock-platform/README.md](../deploy/stock-platform/README.md)

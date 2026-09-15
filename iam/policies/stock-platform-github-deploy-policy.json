@@ -1,0 +1,54 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FrontendBucketList",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::__FE_BUCKET__"
+    },
+    {
+      "Sid": "FrontendBucketObjects",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"],
+      "Resource": "arn:aws:s3:::__FE_BUCKET__/*"
+    },
+    {
+      "Sid": "CloudFrontInvalidate",
+      "Effect": "Allow",
+      "Action": "cloudfront:CreateInvalidation",
+      "Resource": "arn:aws:cloudfront::__ACCOUNT_ID__:distribution/__DIST_ID__"
+    },
+    {
+      "Sid": "LambdaCodeUpdate",
+      "Effect": "Allow",
+      "Action": ["lambda:UpdateFunctionCode", "lambda:GetFunction"],
+      "Resource": "arn:aws:lambda:__REGION__:__ACCOUNT_ID__:function:__APP__-*"
+    },
+    {
+      "Sid": "ECRPushPlatformImages",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage",
+        "ecr:PutImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload",
+        "ecr:DescribeRepositories", "ecr:DescribeImages"
+      ],
+      "Resource": "arn:aws:ecr:__REGION__:__ACCOUNT_ID__:repository/stock-coin-trade-*"
+    },
+    {
+      "Sid": "SSMRunCommandOnAppInstance",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ec2:__REGION__:__ACCOUNT_ID__:instance/__INSTANCE_ID__",
+        "arn:aws:ssm:__REGION__::document/AWS-RunShellScript"
+      ]
+    },
+    {
+      "Sid": "SSMCommandStatus",
+      "Effect": "Allow",
+      "Action": ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations"],
+      "Resource": "*"
+    }
+  ]
+}

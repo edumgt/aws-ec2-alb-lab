@@ -1,4 +1,6 @@
-const BE_API = "http://43.203.255.251:8000";
+// API 기본 주소는 config.js(window.APP_CONFIG.apiBase) 에서 읽습니다.
+// 비어 있으면 같은 도메인의 /api/* (CloudFront → ALB 라우팅) 를 사용합니다.
+const BE_API = ((window.APP_CONFIG && window.APP_CONFIG.apiBase) || "").replace(/\/$/, "");
 
 const statusRank = {
   Healthy: 0,
