@@ -1,0 +1,5 @@
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# KOSPI 대표 10개 종목 일봉을 10분마다 upsert한다. flock으로 동시 실행을 막는다.
+*/10 * * * * /usr/bin/flock -n /tmp/ohlcv-kospi.lock /home/ec2-user/ohlcv-crawler/run_kospi_batch.sh >> /home/ec2-user/ohlcv-crawler/logs/kospi-batch.log 2>&1
