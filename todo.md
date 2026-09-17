@@ -95,3 +95,12 @@ ORDER BY trade_date DESC, symbol;
 - [ ] 수집 실패 알림 및 모니터링 추가
 - [ ] 일봉 외 분봉 데이터 수집 필요 여부 검토
 - [ ] DB 백업 및 보존 정책 설정
+
+
+## DB 접속
+
+Host: 54.116.203.151
+Port: 5432
+Database: ohlcv
+User: stock
+Password: stock1234!!
