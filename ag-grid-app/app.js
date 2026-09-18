@@ -1,162 +1,120 @@
-// API 기본 주소는 config.js(window.APP_CONFIG.apiBase) 에서 읽습니다.
-// 비어 있으면 같은 도메인의 /api/* (CloudFront → ALB 라우팅) 를 사용합니다.
+// API 기본 주소는 config.js(window.APP_CONFIG.apiBase)에서 읽습니다.
 const BE_API = ((window.APP_CONFIG && window.APP_CONFIG.apiBase) || "").replace(/\/$/, "");
-
-const statusRank = {
-  Healthy: 0,
-  Warning: 1,
-  Critical: 2,
-};
-
-function currencyCompact(value) {
-  return new Intl.NumberFormat("ko-KR").format(value);
-}
-
-function statusCellRenderer(params) {
-  const status = params.value || "Healthy";
-  const normalized = status.toLowerCase();
-  return `<span class="status-pill is-${normalized}">${status}</span>`;
-}
-
-function progressCellRenderer(params) {
-  const value = Number(params.value || 0);
-  return `
-    <div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.82rem;">
-        <span>${value}%</span>
-        <span style="color:#61708a;">deploy</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-bar" style="width:${value}%"></div>
-      </div>
-    </div>
-  `;
-}
+const numberFormatter = new Intl.NumberFormat("ko-KR");
+const priceFormatter = (params) => params.value == null ? "-" : numberFormatter.format(Number(params.value));
+const percentFormatter = (params) => params.value == null ? "-" : `${Number(params.value).toFixed(2)}%`;
 
 const columnDefs = [
-  { headerName: "Service", field: "service", minWidth: 170, pinned: "left" },
-  { headerName: "Region", field: "region", minWidth: 150 },
-  { headerName: "Owner", field: "owner", minWidth: 130 },
-  {
-    headerName: "Status",
-    field: "status",
-    minWidth: 140,
-    cellRenderer: statusCellRenderer,
-    comparator: (a, b) => statusRank[a] - statusRank[b],
-  },
-  {
-    headerName: "Deploy Progress",
-    field: "progress",
-    minWidth: 190,
-    sort: "desc",
-    cellRenderer: progressCellRenderer,
-  },
-  {
-    headerName: "Instances",
-    field: "instances",
-    maxWidth: 130,
-    filter: "agNumberColumnFilter",
-  },
-  {
-    headerName: "Traffic / min",
-    field: "traffic",
-    minWidth: 140,
-    valueFormatter: (params) => currencyCompact(params.value),
-    filter: "agNumberColumnFilter",
-  },
-  {
-    headerName: "Updated",
-    field: "updatedAt",
-    minWidth: 170,
-  },
+  { headerName: "날짜", field: "trade_date", minWidth: 120, pinned: "left", sort: "desc" },
+  { headerName: "종목코드", field: "symbol", minWidth: 110 },
+  { headerName: "종목명", field: "company_name", minWidth: 140 },
+  { headerName: "시가", field: "open_price", minWidth: 110, valueFormatter: priceFormatter, filter: "agNumberColumnFilter" },
+  { headerName: "고가", field: "high_price", minWidth: 110, valueFormatter: priceFormatter, filter: "agNumberColumnFilter" },
+  { headerName: "저가", field: "low_price", minWidth: 110, valueFormatter: priceFormatter, filter: "agNumberColumnFilter" },
+  { headerName: "종가", field: "close_price", minWidth: 110, valueFormatter: priceFormatter, filter: "agNumberColumnFilter" },
+  { headerName: "거래량", field: "volume", minWidth: 140, valueFormatter: priceFormatter, filter: "agNumberColumnFilter" },
+  { headerName: "등락률", field: "change_rate_pct", minWidth: 110, valueFormatter: percentFormatter },
+  { headerName: "외국인 보유율", field: "foreign_ownership_pct", minWidth: 140, valueFormatter: percentFormatter },
 ];
 
-const gridOptions = {
-  rowData: [],
-  columnDefs,
-  defaultColDef: {
-    flex: 1,
-    sortable: true,
-    filter: true,
-    floatingFilter: true,
-    resizable: true,
-  },
-  animateRows: true,
-  rowHeight: 74,
-  pagination: true,
-  paginationPageSize: 6,
-  paginationPageSizeSelector: [6, 10, 20],
-};
-
-const gridElement = document.getElementById("serviceGrid");
-const gridApi = agGrid.createGrid(gridElement, gridOptions);
-
-function updateMetrics(rowData) {
-  const activeServices = rowData.length;
-  const avgProgress = rowData.length
-    ? Math.round(rowData.reduce((sum, row) => sum + row.progress, 0) / rowData.length)
-    : 0;
-  const urgentItems = rowData.filter((row) => row.status !== "Healthy").length;
-
-  document.getElementById("activeServices").textContent = String(activeServices);
-  document.getElementById("avgProgress").textContent = `${avgProgress}%`;
-  document.getElementById("urgentItems").textContent = String(urgentItems);
-}
-
-async function loadServices() {
-  try {
-    const response = await fetch(`${BE_API}/api/services`);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    gridApi.setGridOption("rowData", data);
-    updateMetrics(data);
-  } catch (err) {
-    console.error("서비스 데이터 로딩 실패:", err);
-  }
-}
-
-function setStatusFilter(status) {
-  if (status === "all") {
-    gridApi.setFilterModel(null);
-    return;
-  }
-
-  gridApi.setFilterModel({
-    status: {
-      filterType: "text",
-      type: "equals",
-      filter:
-        status === "healthy"
-          ? "Healthy"
-          : status === "warning"
-            ? "Warning"
-            : "Critical",
-    },
-  });
-}
-
-document.getElementById("quickFilter").addEventListener("input", (event) => {
-  gridApi.setGridOption("quickFilterText", event.target.value);
+const gridApi = agGrid.createGrid(document.getElementById("ohlcvGrid"), {
+  rowData: [], columnDefs,
+  defaultColDef: { flex: 1, sortable: true, filter: true, floatingFilter: true, resizable: true },
+  animateRows: true, pagination: true, paginationPageSize: 20, paginationPageSizeSelector: [20, 50, 100],
 });
 
-document.querySelectorAll("[data-filter]").forEach((button) => {
-  button.addEventListener("click", () => {
-    document
-      .querySelectorAll("[data-filter]")
-      .forEach((chip) => chip.classList.remove("is-active"));
-    button.classList.add("is-active");
-    setStatusFilter(button.dataset.filter);
-  });
+const searchForm = document.getElementById("searchForm");
+const stockSearch = document.getElementById("stockSearch");
+const startDate = document.getElementById("startDate");
+const endDate = document.getElementById("endDate");
+const statusMessage = document.getElementById("statusMessage");
+const symbolsByCode = new Map();
+let symbols = [];
+
+function setStatus(message, type = "") {
+  statusMessage.textContent = message;
+  statusMessage.className = `status-message ${type}`.trim();
+}
+
+function updateMetrics(rows) {
+  const latest = rows.at(-1);
+  document.getElementById("resultCount").textContent = String(rows.length);
+  document.getElementById("lastClose").textContent = latest ? numberFormatter.format(latest.close_price) : "-";
+  document.getElementById("totalVolume").textContent = numberFormatter.format(rows.reduce((sum, row) => sum + Number(row.volume || 0), 0));
+}
+
+function resolveSymbol(query) {
+  const normalized = query.trim().toUpperCase();
+  if (!normalized) return null;
+  const directCode = normalized.split(" · ")[0];
+  if (symbolsByCode.has(directCode)) return symbolsByCode.get(directCode);
+  return symbols.find(({ symbol, company_name }) => symbol === normalized || company_name.toUpperCase() === normalized)
+    || symbols.find(({ symbol, company_name }) => symbol.includes(normalized) || company_name.toUpperCase().includes(normalized));
+}
+
+async function loadOhlcv(symbolInfo) {
+  if (startDate.value && endDate.value && startDate.value > endDate.value) {
+    setStatus("시작일은 종료일보다 늦을 수 없습니다.", "is-error");
+    return;
+  }
+  const params = new URLSearchParams({ limit: "1000" });
+  if (startDate.value) params.set("start_date", startDate.value);
+  if (endDate.value) params.set("end_date", endDate.value);
+  setStatus(`${symbolInfo.company_name} (${symbolInfo.symbol}) 데이터를 불러오는 중입니다.`);
+  try {
+    const response = await fetch(`${BE_API}/api/v1/ohlcv/${encodeURIComponent(symbolInfo.symbol)}?${params}`);
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${response.status}`);
+    }
+    const rows = await response.json();
+    gridApi.setGridOption("rowData", rows);
+    updateMetrics(rows);
+    document.getElementById("selectedStock").textContent = `${symbolInfo.company_name} (${symbolInfo.symbol})`;
+    setStatus(`${rows.length}건의 일봉 데이터를 표시합니다.`, "is-success");
+  } catch (error) {
+    gridApi.setGridOption("rowData", []);
+    updateMetrics([]);
+    setStatus(`데이터를 불러오지 못했습니다: ${error.message}`, "is-error");
+  }
+}
+
+async function loadSymbols() {
+  try {
+    const response = await fetch(`${BE_API}/api/v1/ohlcv/symbols`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    symbols = await response.json();
+    symbols.forEach((item) => symbolsByCode.set(item.symbol.toUpperCase(), item));
+    document.getElementById("stockOptions").replaceChildren(...symbols.map((item) => {
+      const option = document.createElement("option");
+      option.value = `${item.symbol} · ${item.company_name}`;
+      option.label = `${item.company_name} (${item.first_trade_date} ~ ${item.last_trade_date})`;
+      return option;
+    }));
+    if (!symbols.length) throw new Error("조회 가능한 종목이 없습니다.");
+    stockSearch.value = `${symbols[0].symbol} · ${symbols[0].company_name}`;
+    await loadOhlcv(symbols[0]);
+  } catch (error) {
+    setStatus(`종목 목록을 불러오지 못했습니다: ${error.message}`, "is-error");
+  }
+}
+
+searchForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const symbolInfo = resolveSymbol(stockSearch.value);
+  if (!symbolInfo) {
+    setStatus("종목명 또는 종목코드를 목록에서 선택하거나 정확히 입력해 주세요.", "is-error");
+    return;
+  }
+  stockSearch.value = `${symbolInfo.symbol} · ${symbolInfo.company_name}`;
+  loadOhlcv(symbolInfo);
 });
 
 document.getElementById("resetFilters").addEventListener("click", () => {
-  document.getElementById("quickFilter").value = "";
-  gridApi.setFilterModel(null);
-  gridApi.setGridOption("quickFilterText", "");
-  document
-    .querySelectorAll("[data-filter]")
-    .forEach((chip) => chip.classList.remove("is-active"));
-  document.querySelector('[data-filter="all"]').classList.add("is-active");
+  startDate.value = "";
+  endDate.value = "";
+  const symbolInfo = resolveSymbol(stockSearch.value) || symbols[0];
+  if (symbolInfo) loadOhlcv(symbolInfo);
 });
 
-loadServices();
+loadSymbols();

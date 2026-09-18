@@ -3,103 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ops Pulse Grid</title>
-    <meta name="description" content="서비스 배포 현황 대시보드" />
+    <title>Korea Stock OHLCV</title>
+    <meta name="description" content="국내 주식 OHLCV 조회 대시보드" />
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@34.1.2/dist/ag-grid-community.min.js"></script>
   </head>
   <body>
-
-    <!-- 상단 네비 바 -->
-    <nav class="topbar">
-      <a class="topbar-logo" href="#">
-        <!-- Copilot 스타일 그라디언트 아이콘 -->
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="cg" x1="0" y1="0" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#5b6cf9"/>
-              <stop offset="50%" stop-color="#a855f7"/>
-              <stop offset="100%" stop-color="#ec4899"/>
-            </linearGradient>
-          </defs>
-          <rect width="22" height="22" rx="6" fill="url(#cg)"/>
-          <path d="M6 11a5 5 0 1 0 10 0A5 5 0 0 0 6 11Z" fill="white" opacity="0.9"/>
-          <circle cx="11" cy="11" r="2.5" fill="url(#cg)"/>
-        </svg>
-        Ops Pulse
-      </a>
-      <div class="topbar-divider"></div>
-      <span class="topbar-title">서비스 배포 현황</span>
-    </nav>
-
+    <nav class="topbar"><a class="topbar-logo" href="#">OHLCV Explorer</a><span class="topbar-divider"></span><span class="topbar-title">국내 주식 일봉 조회</span></nav>
     <div class="shell">
-      <!-- 히어로 -->
       <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">✦ Deployment Dashboard</p>
-          <h1>서비스 배포 현황</h1>
-          <p class="hero-text">
-            인스턴스 상태, 담당자, 배포 진행률을 실시간으로 탐색하고
-            필터링합니다.
-          </p>
-        </div>
+        <div class="hero-copy"><p class="eyebrow">✦ Korea Stock Open API</p><h1>주식 OHLCV 데이터</h1><p class="hero-text">종목명 또는 종목코드를 검색하고 기간을 선택해 시가·고가·저가·종가·거래량을 확인하세요.</p></div>
         <div class="hero-panel">
-          <div class="metric-card">
-            <span class="metric-label">Active Services</span>
-            <strong id="activeServices">0</strong>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Avg Progress</span>
-            <strong id="avgProgress">0%</strong>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Urgent Items</span>
-            <strong id="urgentItems">0</strong>
-          </div>
+          <div class="metric-card"><span class="metric-label">선택 종목</span><strong id="selectedStock">-</strong></div>
+          <div class="metric-card"><span class="metric-label">조회 건수</span><strong id="resultCount">0</strong></div>
+          <div class="metric-card"><span class="metric-label">최근 종가</span><strong id="lastClose">-</strong></div>
         </div>
       </header>
-
       <main class="workspace">
-        <!-- 툴바 -->
         <section class="toolbar">
-          <label class="search-field" for="quickFilter">
-            <span>검색</span>
-            <input
-              id="quickFilter"
-              type="search"
-              placeholder="서비스명, 담당자, 리전으로 검색"
-            />
-          </label>
-
-          <div class="toolbar-actions">
-            <button type="button" class="chip is-active" data-filter="all">전체</button>
-            <button type="button" class="chip" data-filter="healthy">Healthy</button>
-            <button type="button" class="chip" data-filter="warning">Warning</button>
-            <button type="button" class="chip" data-filter="critical">Critical</button>
-            <button type="button" class="ghost-button" id="resetFilters">초기화</button>
-          </div>
+          <form id="searchForm" class="search-form">
+            <label class="search-field" for="stockSearch"><span>종목 검색</span><input id="stockSearch" type="search" list="stockOptions" placeholder="예: 삼성전자 또는 005930" autocomplete="off" required /></label>
+            <datalist id="stockOptions"></datalist>
+            <label class="date-field" for="startDate"><span>시작일</span><input id="startDate" type="date" /></label>
+            <label class="date-field" for="endDate"><span>종료일</span><input id="endDate" type="date" /></label>
+            <button type="submit" class="primary-button">조회</button>
+            <button type="button" class="ghost-button" id="resetFilters">기간 초기화</button>
+          </form>
+          <p id="statusMessage" class="status-message" role="status" aria-live="polite">종목 목록을 불러오는 중입니다.</p>
         </section>
-
-        <!-- 그리드 패널 -->
         <section class="panel">
-          <div class="panel-head">
-            <div>
-              <p class="panel-kicker">Deployment Board</p>
-              <h2>운영 서비스 목록</h2>
-            </div>
-            <div class="legend">
-              <span><i class="dot healthy"></i> Healthy</span>
-              <span><i class="dot warning"></i> Warning</span>
-              <span><i class="dot critical"></i> Critical</span>
-            </div>
-          </div>
-
-          <div id="serviceGrid" class="ag-theme-quartz grid-frame"></div>
+          <div class="panel-head"><div><p class="panel-kicker">Daily price history</p><h2>OHLCV 일봉 목록</h2></div><div class="volume-summary">기간 내 거래량 <strong id="totalVolume">0</strong></div></div>
+          <div id="ohlcvGrid" class="ag-theme-quartz grid-frame"></div>
         </section>
       </main>
     </div>
-
-    <script src="config.js"></script>
-    <script src="app.js"></script>
+    <script src="config.js"></script><script src="app.js"></script>
   </body>
 </html>

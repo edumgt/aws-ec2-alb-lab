@@ -6,7 +6,7 @@ Nginx 나 S3 에 그대로 올릴 수 있는 바닐라 HTML/CSS/JS 기반 AG Gri
 ## 파일 구성
 - `index.html`: CDN 으로 AG Grid 를 불러오는 진입점
 - `config.js`: **런타임 설정** — API 기본 주소(`apiBase`). 빌드 없이 환경별로 교체
-- `app.js`: 그리드 컬럼, 데이터 로드(`${apiBase}/api/services`), 필터 로직
+- `app.js`: OHLCV 그리드, 종목명/종목코드 검색, 기간 조회 로직
 - `styles.css`: 대시보드 스타일
 - `Dockerfile`: `nginx:alpine` 에 정적 파일 복사 (ECR `fe-test` 이미지)
 
@@ -14,8 +14,8 @@ Nginx 나 S3 에 그대로 올릴 수 있는 바닐라 HTML/CSS/JS 기반 AG Gri
 
 | 배포 형태 | `apiBase` | 이유 |
 |---|---|---|
-| CloudFront 동일 도메인 (플랫폼 구성) | `""` | CloudFront 가 `/api/*` 를 ALB 로 넘기므로 상대 경로 사용, CORS 불필요 |
-| EC2 단독 (FE :80, BE :8000) | `"http://<EC2_PUBLIC_IP>:8000"` | 포트가 달라 절대 주소 필요 (BE 에 CORS 허용됨) |
+| 현재 공개 OHLCV API | `"http://54.116.203.151:8000"` | 종목 목록과 OHLCV 일봉을 직접 조회 |
+| CloudFront 동일 도메인 (플랫폼 구성) | `""` | CloudFront 가 API 경로를 ALB 로 넘기는 경우 |
 | 로컬 개발 | `"http://127.0.0.1:8000"` | `uvicorn` 로컬 백엔드 |
 
 ## 로컬 확인

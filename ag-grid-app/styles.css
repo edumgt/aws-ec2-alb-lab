@@ -192,6 +192,14 @@ body {
   flex-wrap: wrap;
 }
 
+.search-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
 .search-field {
   display: grid;
   gap: 6px;
@@ -201,7 +209,16 @@ body {
   font-weight: 500;
 }
 
-.search-field input {
+.date-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.search-field input,
+.date-field input {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -214,11 +231,37 @@ body {
   outline: none;
 }
 
-.search-field input:focus {
+.search-field input:focus,
+.date-field input:focus {
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.12);
   background: #fff;
 }
+
+.primary-button {
+  appearance: none;
+  border: 1px solid var(--brand);
+  border-radius: 10px;
+  padding: 10px 18px;
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.primary-button:hover { background: var(--brand-deep); }
+
+.status-message {
+  width: 100%;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.status-message.is-success { color: var(--healthy); }
+.status-message.is-error { color: var(--danger); }
 
 .toolbar-actions {
   display: flex;
@@ -306,6 +349,17 @@ body {
   flex-wrap: wrap;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.volume-summary {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.volume-summary strong {
+  margin-left: 6px;
+  color: var(--ink);
+  font-size: 1rem;
 }
 
 .dot {
@@ -398,5 +452,11 @@ body {
 
   .grid-frame {
     height: 520px;
+  }
+
+  .search-form,
+  .search-field,
+  .date-field {
+    width: 100%;
   }
 }
