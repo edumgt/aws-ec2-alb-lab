@@ -52,6 +52,20 @@
   - 로그: `/home/ec2-user/ohlcv-crawler/logs/kospi-batch.log`
   - 서비스: `crond` 활성화 완료
 
+- [x] PostgreSQL OHLCV Open API 및 Swagger 배포 (2026-09-18)
+  - 소스: `BE-fastapi/`
+  - Docker 이미지: `be-fastapi:20260918-ohlcv`
+  - 실행 컨테이너: `be-fastapi` (`0.0.0.0:8000 -> 8000`)
+  - Docker 네트워크: `stock-network` (`stock-postgres`와 동일 네트워크)
+  - DB 연결: 컨테이너 환경 변수 `DATABASE_URL`로 `ohlcv` DB 연결
+  - OpenAPI/Swagger:
+    - `GET /docs` — Swagger UI
+    - `GET /openapi.json` — OpenAPI 3 명세
+    - `GET /api/v1/ohlcv/{symbol}` — 일봉 OHLCV 조회 (`start_date`, `end_date`, `limit` 지원)
+    - `GET /api/v1/ohlcv/symbols` — 수집 종목과 데이터 보유 기간 조회
+  - 검증 완료: 헬스체크, `005930` OHLCV 조회, 종목 목록, OpenAPI 명세
+  - 롤백용 기존 컨테이너 보관: `be-fastapi-previous-20260918` (중지 상태)
+
 ## 운영 명령
 
 ### 배치 수동 실행
@@ -87,6 +101,30 @@ ssh -i /home/ubuntu/aws-ec2-alb-lab/test-0916.key ec2-user@54.116.203.151 \
 SELECT symbol, company_name, trade_date, close_price, volume
 FROM ohlcv_daily
 ORDER BY trade_date DESC, symbol;
+```
+
+### OHLCV Open API 확인
+
+```bash
+# Swagger UI
+curl -I http://54.116.203.151:8000/docs
+
+# 삼성전자 일봉 30건 조회
+curl 'http://54.116.203.151:8000/api/v1/ohlcv/005930?limit=30'
+
+# 제공 종목 목록 조회
+curl http://54.116.203.151:8000/api/v1/ohlcv/symbols
+```
+
+### API 컨테이너 상태 및 롤백
+
+```bash
+ssh -i /home/ubuntu/aws-ec2-alb-lab/test-0916.key ec2-user@54.116.203.151 \
+  'docker ps -a --filter name=be-fastapi'
+
+# 현재 컨테이너를 중지하고 보관한 이전 버전을 재시작하는 롤백 절차
+ssh -i /home/ubuntu/aws-ec2-alb-lab/test-0916.key ec2-user@54.116.203.151 \
+  'docker stop be-fastapi && docker rename be-fastapi be-fastapi-failed && docker rename be-fastapi-previous-20260918 be-fastapi && docker start be-fastapi'
 ```
 
 ## 추후 작업 후보

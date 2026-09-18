@@ -1,18 +1,29 @@
-from fastapi import FastAPI
+import os
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
+import psycopg
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List
+from psycopg.rows import dict_row
 
 app = FastAPI(
-    title="BE FastAPI Hello",
-    version="1.0.0",
+    title="Korea Stock OHLCV Open API",
+    version="1.1.0",
     description="""
-## BE FastAPI Hello API
+## Korea Stock OHLCV Open API
 
-EC2 + Docker 배포 실습용 FastAPI 서비스입니다.
+PostgreSQL에 수집된 국내 주식 일봉 OHLCV 데이터를 JSON으로 제공하는 공개 조회 API입니다.
+
+`QUANT_DATABASE_URL`을 우선 사용하며, 없으면 `DATABASE_URL` 환경 변수를 사용합니다.
+두 환경 변수 모두 PostgreSQL 연결 문자열이어야 합니다.
 
 ### 엔드포인트
+- **GET /api/v1/ohlcv/{symbol}** — 종목의 일별 시가·고가·저가·종가·거래량 조회
+- **GET /api/v1/ohlcv/symbols** — OHLCV 데이터가 있는 종목 목록 조회
 - **GET /** — 헬로 메시지
 - **GET /health** — ALB 헬스체크
 - **GET /api/services** — 국내외 금융사 서비스 배포 현황 목록 (AG Grid 목업)
@@ -61,6 +72,30 @@ class MessageResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = Field(..., example="ok")
+
+
+class OhlcvDaily(BaseModel):
+    """PostgreSQL `ohlcv_daily` 테이블의 일봉 레코드."""
+
+    symbol: str = Field(..., examples=["005930"], description="KRX 종목코드")
+    company_name: str = Field(..., examples=["삼성전자"])
+    trade_date: date = Field(..., examples=["2026-09-18"])
+    open_price: Decimal = Field(..., examples=[71000])
+    high_price: Decimal = Field(..., examples=[72500])
+    low_price: Decimal = Field(..., examples=[70800])
+    close_price: Decimal = Field(..., examples=[72000])
+    volume: int = Field(..., examples=[12345678])
+    foreign_ownership_pct: Optional[Decimal] = Field(None, examples=[51.23])
+    change_rate_pct: Optional[Decimal] = Field(None, examples=[1.41])
+    data_source: str = Field(..., examples=["naver_finance"])
+    collected_at: datetime = Field(..., examples=["2026-09-18T10:30:00+00:00"])
+
+
+class OhlcvSymbol(BaseModel):
+    symbol: str = Field(..., examples=["005930"])
+    company_name: str = Field(..., examples=["삼성전자"])
+    first_trade_date: date
+    last_trade_date: date
 
 
 class Item(BaseModel):
@@ -131,6 +166,105 @@ def hello_world():
 def health_check():
     """ALB / 컨테이너 헬스체크용 엔드포인트"""
     return {"status": "ok"}
+
+
+# ── PostgreSQL OHLCV Open API ─────────────────────────────────────────
+
+def _database_url() -> str:
+    """Return a psycopg-compatible URL without exposing credentials in errors."""
+    database_url = os.getenv("QUANT_DATABASE_URL") or os.getenv("DATABASE_URL")
+    if not database_url:
+        raise HTTPException(
+            status_code=503,
+            detail="OHLCV database is not configured. Set QUANT_DATABASE_URL or DATABASE_URL.",
+        )
+    # The deployment scripts store SQLAlchemy-form URLs (postgresql+psycopg://).
+    return database_url.replace("postgresql+psycopg://", "postgresql://", 1)
+
+
+def _database_unavailable() -> HTTPException:
+    return HTTPException(status_code=503, detail="OHLCV database is temporarily unavailable.")
+
+
+@app.get(
+    "/api/v1/ohlcv/symbols",
+    response_model=List[OhlcvSymbol],
+    tags=["OHLCV"],
+    summary="OHLCV 제공 종목 목록",
+    responses={503: {"description": "데이터베이스 연결 불가"}},
+)
+def list_ohlcv_symbols():
+    """수집된 종목과 보유 데이터의 첫/마지막 거래일을 반환합니다."""
+    query = """
+        SELECT symbol, MAX(company_name) AS company_name,
+               MIN(trade_date) AS first_trade_date, MAX(trade_date) AS last_trade_date
+        FROM ohlcv_daily
+        GROUP BY symbol
+        ORDER BY symbol
+    """
+    try:
+        with psycopg.connect(_database_url(), connect_timeout=5) as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(query)
+                return cursor.fetchall()
+    except HTTPException:
+        raise
+    except psycopg.Error:
+        raise _database_unavailable() from None
+
+
+@app.get(
+    "/api/v1/ohlcv/{symbol}",
+    response_model=List[OhlcvDaily],
+    tags=["OHLCV"],
+    summary="일별 OHLCV 조회",
+    responses={404: {"description": "해당 종목의 OHLCV 데이터가 없습니다."}, 503: {"description": "데이터베이스 연결 불가"}},
+)
+def get_ohlcv(
+    symbol: str,
+    start_date: Optional[date] = Query(None, description="조회 시작일 (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="조회 종료일 (YYYY-MM-DD)"),
+    limit: int = Query(100, ge=1, le=1000, description="반환할 최대 행 수"),
+):
+    """종목코드별 일봉을 오래된 날짜 순으로 반환합니다."""
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol:
+        raise HTTPException(status_code=422, detail="symbol must not be blank")
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(status_code=422, detail="start_date must be before or equal to end_date")
+
+    clauses = ["symbol = %s"]
+    parameters: list = [normalized_symbol]
+    if start_date:
+        clauses.append("trade_date >= %s")
+        parameters.append(start_date)
+    if end_date:
+        clauses.append("trade_date <= %s")
+        parameters.append(end_date)
+    parameters.append(limit)
+    query = f"""
+        SELECT symbol, company_name, trade_date, open_price, high_price, low_price,
+               close_price, volume, foreign_ownership_pct, change_rate_pct,
+               data_source, collected_at
+        FROM ohlcv_daily
+        WHERE {' AND '.join(clauses)}
+        ORDER BY trade_date DESC
+        LIMIT %s
+    """
+
+    try:
+        with psycopg.connect(_database_url(), connect_timeout=5) as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(query, parameters)
+                rows = cursor.fetchall()
+    except HTTPException:
+        raise
+    except psycopg.Error:
+        raise _database_unavailable() from None
+
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No OHLCV data found for symbol '{normalized_symbol}'.")
+    return list(reversed(rows))
 
 
 _items: dict[int, dict] = {
