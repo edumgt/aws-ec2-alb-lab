@@ -1,0 +1,44 @@
+name: ohlcv-local
+
+services:
+  postgres:
+    image: 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/stock-postgres-seed:latest
+    environment:
+      POSTGRES_DB: ohlcv
+      POSTGRES_USER: stock
+      POSTGRES_PASSWORD: localstockpassword
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    image: 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/be-fastapi:latest
+    environment:
+      QUANT_DATABASE_URL: postgresql://stock:localstockpassword@postgres:5432/ohlcv
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "18000:8000"
+    restart: unless-stopped
+
+  frontend:
+    image: 086015456585.dkr.ecr.ap-northeast-2.amazonaws.com/ohlcv-fe:latest
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./compose/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./compose/config.local.js:/usr/share/nginx/html/config.js:ro
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
