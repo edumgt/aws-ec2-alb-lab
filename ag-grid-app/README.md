@@ -14,7 +14,7 @@ Nginx 나 S3 에 그대로 올릴 수 있는 바닐라 HTML/CSS/JS 기반 AG Gri
 
 | 배포 형태 | `apiBase` | 이유 |
 |---|---|---|
-| 현재 공개 OHLCV API | `"http://54.116.203.151:8000"` | 종목 목록과 OHLCV 일봉을 직접 조회 |
+| 현재 공개 OHLCV API | `"https://rag.edumgt.co.kr"` | HTTPS로 종목 목록과 OHLCV 일봉을 직접 조회 |
 | CloudFront 동일 도메인 (플랫폼 구성) | `""` | CloudFront 가 API 경로를 ALB 로 넘기는 경우 |
 | 로컬 개발 | `"http://127.0.0.1:8000"` | `uvicorn` 로컬 백엔드 |
 

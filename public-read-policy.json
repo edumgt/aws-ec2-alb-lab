@@ -6,7 +6,12 @@
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::domain-rag-086015456585/index.html"
+      "Resource": [
+        "arn:aws:s3:::domain-rag-086015456585/index.html",
+        "arn:aws:s3:::domain-rag-086015456585/app.js",
+        "arn:aws:s3:::domain-rag-086015456585/config.js",
+        "arn:aws:s3:::domain-rag-086015456585/styles.css"
+      ]
     }
   ]
 }
