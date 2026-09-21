@@ -1,0 +1,13 @@
+rag.edumgt.co.kr {
+    encode zstd gzip
+
+    # FastAPI는 Docker 네트워크 내부에서만 접근한다.
+    handle /api/* {
+        reverse_proxy be-fastapi:8000
+    }
+
+    # 프론트엔드는 rf.edumgt.co.kr의 S3/CloudFront에서 제공한다.
+    handle {
+        respond "Not Found" 404
+    }
+}

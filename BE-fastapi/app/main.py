@@ -24,21 +24,28 @@ PostgreSQL에 수집된 국내 주식 일봉 OHLCV 데이터를 JSON으로 제�
 ### 엔드포인트
 - **GET /api/v1/ohlcv/{symbol}** — 종목의 일별 시가·고가·저가·종가·거래량 조회
 - **GET /api/v1/ohlcv/symbols** — OHLCV 데이터가 있는 종목 목록 조회
-- **GET /** — 헬로 메시지
-- **GET /health** — ALB 헬스체크
+- **GET /api** — 헬로 메시지
+- **GET /api/health** — 컨테이너/프록시 헬스체크
 - **GET /api/services** — 국내외 금융사 서비스 배포 현황 목록 (AG Grid 목업)
 - **GET /api/stocks/list** — 국내 주식 시세 목업 (주식투자 플랫폼 ALB 헬스체크 경로와 동일)
-- **GET /items/{item_id}** — 아이템 조회
-- **POST /items** — 아이템 생성
+- **GET /api/items/{item_id}** — 아이템 조회
+- **POST /api/items** — 아이템 생성
 """,
     contact={"name": "kdy", "email": "kimdypm@gmail.com"},
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+    swagger_ui_oauth2_redirect_url="/api/docs/oauth2-redirect",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://rag.edumgt.co.kr",
+        "https://rf.edumgt.co.kr",
+        "http://rf.edumgt.co.kr",
+    ],
+    allow_origin_regex=r"^https?://(?:localhost|127\.0\.0\.1)(?::\d+)?$",
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -156,13 +163,13 @@ def list_stocks():
     return _stocks
 
 
-@app.get("/", response_model=MessageResponse, tags=["General"])
+@app.get("/api", response_model=MessageResponse, tags=["General"])
 def hello_world():
     """서비스 기본 응답"""
     return {"message": "hello world"}
 
 
-@app.get("/health", response_model=HealthResponse, tags=["General"])
+@app.get("/api/health", response_model=HealthResponse, tags=["General"])
 def health_check():
     """ALB / 컨테이너 헬스체크용 엔드포인트"""
     return {"status": "ok"}
@@ -273,7 +280,7 @@ _items: dict[int, dict] = {
 }
 
 
-@app.get("/items/{item_id}", response_model=ItemResponse, tags=["Items"])
+@app.get("/api/items/{item_id}", response_model=ItemResponse, tags=["Items"])
 def get_item(item_id: int):
     """ID로 아이템 조회"""
     if item_id not in _items:
@@ -281,7 +288,7 @@ def get_item(item_id: int):
     return _items[item_id]
 
 
-@app.post("/items", response_model=ItemResponse, status_code=201, tags=["Items"])
+@app.post("/api/items", response_model=ItemResponse, status_code=201, tags=["Items"])
 def create_item(item: Item):
     """새 아이템 생성"""
     new_id = max(_items.keys()) + 1

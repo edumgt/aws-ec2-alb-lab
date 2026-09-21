@@ -24,18 +24,13 @@ cd ag-grid-app
 python3 -m http.server 8080      # http://127.0.0.1:8080
 ```
 
-## 배포 방법 3가지
+## 운영 배포 (S3 + CloudFront)
 
 ```bash
-# 1) S3 + CloudFront (플랫폼 구성, deploy/stock-platform/06_frontend_cdn.sh 가 수행)
+# rf.edumgt.co.kr의 S3 오리진으로 업로드합니다.
+# config.js의 apiBase는 https://rag.edumgt.co.kr 이어야 합니다.
 aws s3 sync . "s3://${FE_BUCKET}/" --delete --exclude Dockerfile --exclude README.md --cache-control "max-age=300"
 aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
-
-# 2) ECR 이미지 (Nginx 컨테이너, EC2/ECS 용)
-docker build -t fe-test:latest . && bash ../deploy/ecr-push-be.sh
-
-# 3) EC2 Nginx 에 직접 복사
-sudo cp -r . /var/www/html/ag-grid-app/ && sudo systemctl reload nginx
 ```
 
 ## 관련 문서

@@ -296,7 +296,7 @@ ssh -i ~/.ssh/kdy-test.pem ubuntu@43.203.255.251 \
   "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 
 # BE 헬스체크
-curl http://43.203.255.251:8000/health
+curl http://43.203.255.251:8000/api/health
 
 # FE 접속 확인
 curl -s -o /dev/null -w "%{http_code}" http://43.203.255.251/

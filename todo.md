@@ -66,6 +66,45 @@
   - 검증 완료: 헬스체크, `005930` OHLCV 조회, 종목 목록, OpenAPI 명세
   - 롤백용 기존 컨테이너 보관: `be-fastapi-previous-20260918` (중지 상태)
 
+## 2026-09-21 — API 경로·HTTPS·FE 분리 반영
+
+- [x] FastAPI의 모든 공개 경로를 `/api` 아래로 통일
+  - Swagger UI: `https://rag.edumgt.co.kr/api/docs`
+  - ReDoc: `https://rag.edumgt.co.kr/api/redoc`
+  - OpenAPI JSON: `https://rag.edumgt.co.kr/api/openapi.json`
+  - 헬스체크: `GET /api/health`
+  - 아이템: `GET /api/items/{item_id}`, `POST /api/items`
+  - Swagger OAuth redirect도 `/api/docs/oauth2-redirect`로 설정
+- [x] EC2의 `rag-caddy`를 Docker `stock-network`에 연결
+  - Caddy가 호스트 포트 `80/443`과 TLS를 담당
+  - `/api/*` 요청만 `be-fastapi:8000`으로 프록시
+  - FastAPI `8000`은 Docker 내부 포트만 사용하며 호스트에 공개하지 않음
+- [x] EC2 Docker의 FE 제거
+  - 실행 중이던 `fe-ag-grid`와 중지된 `fe-ag-grid-http-backup` 컨테이너 제거
+  - 사용하지 않는 `ohlcv-fe:20260918` 이미지 제거
+  - FE는 `rf.edumgt.co.kr`의 S3/CloudFront 정적 호스팅으로만 제공
+- [x] CORS 허용 Origin 설정 및 EC2 배포
+  - `https://rag.edumgt.co.kr`
+  - `https://rf.edumgt.co.kr`
+  - `http://rf.edumgt.co.kr`
+  - `http(s)://localhost:<port>`, `http(s)://127.0.0.1:<port>`
+- [x] 외부 HTTPS 검증
+  - `/api/docs`, `/api/openapi.json`, `/api/health`, `/api/items/1`이 `200` 응답
+
+## rf.edumgt.co.kr CloudFront HTTPS 작업
+
+- [ ] CloudFront·ACM·Route 53 권한이 있는 AWS 역할/프로필 준비
+  - 현재 IAM 사용자 `ec2-user`는 `cloudfront:ListDistributions`, `acm:ListCertificates`, `route53:ListHostedZonesByName` 권한이 없어 작업이 차단됨
+- [ ] `us-east-1`에서 `rf.edumgt.co.kr` ACM 공개 인증서 요청
+- [ ] ACM DNS 검증용 CNAME 레코드를 Route 53 `edumgt.co.kr` 호스팅 존에 생성하고 인증서 발급 완료 확인
+- [ ] S3 버킷 `rf.edumgt.co.kr`을 오리진으로 사용하는 CloudFront 배포를 생성하거나 기존 배포를 수정
+  - Alternate domain name: `rf.edumgt.co.kr`
+  - Viewer certificate: 발급된 `us-east-1` ACM 인증서
+  - Viewer protocol policy: `Redirect HTTP to HTTPS`
+  - 정적 파일 배포 후 CloudFront invalidation 수행
+- [ ] Route 53 `rf.edumgt.co.kr` A/AAAA Alias 레코드를 CloudFront 배포로 연결
+- [ ] `https://rf.edumgt.co.kr` 접속 및 `https://rag.edumgt.co.kr/api/health` CORS 호출 검증
+
 ## 운영 명령
 
 ### 배치 수동 실행
@@ -106,14 +145,15 @@ ORDER BY trade_date DESC, symbol;
 ### OHLCV Open API 확인
 
 ```bash
-# Swagger UI
-curl -I http://54.116.203.151:8000/docs
+# Swagger UI / API health (EC2의 8000 포트는 외부 비공개)
+curl -I https://rag.edumgt.co.kr/api/docs
+curl https://rag.edumgt.co.kr/api/health
 
 # 삼성전자 일봉 30건 조회
-curl 'http://54.116.203.151:8000/api/v1/ohlcv/005930?limit=30'
+curl 'https://rag.edumgt.co.kr/api/v1/ohlcv/005930?limit=30'
 
 # 제공 종목 목록 조회
-curl http://54.116.203.151:8000/api/v1/ohlcv/symbols
+curl https://rag.edumgt.co.kr/api/v1/ohlcv/symbols
 ```
 
 ### API 컨테이너 상태 및 롤백
